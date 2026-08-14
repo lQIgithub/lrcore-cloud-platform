@@ -1,0 +1,20 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.lrcore</groupId>
+        <artifactId>lrcore-buzi-modules</artifactId>
+        <version>v1.0.0</version>
+    </parent>
+    <artifactId>lrcore-system-modules</artifactId>
+    <packaging>pom</packaging>
+    <name>system-modules业务模块</name>
+    <description>
+        system-modules业务模块
+    </description>
+
+    <modules>
+        <module>lrcore-system</module>
+        <module>lrcore-system-api</module>
+    </modules>
+</project>

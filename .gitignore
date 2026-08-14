@@ -1,0 +1,9 @@
+.DS_Store
+.idea/
+.vscode/
+target/
+logs/
+*.iml
+*.swp
+*.bak
+*.class

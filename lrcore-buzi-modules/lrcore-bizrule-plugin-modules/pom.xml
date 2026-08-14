@@ -1,0 +1,23 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.lrcore</groupId>
+        <artifactId>lrcore-buzi-modules</artifactId>
+        <version>v1.0.0</version>
+    </parent>
+    <artifactId>lrcore-bizrule-plugin-modules</artifactId>
+    <packaging>pom</packaging>
+    <name>bizrule-plugin-modules业务插件模块</name>
+    <description>
+        bizrule-plugin-modules插件模块，专用于编写扩展验证规则，编译后生成jar包， 上传到指定的目录下， 由lrcore-bizrule模块自动加载，
+        用于业务上线规则验证
+    </description>
+
+    <modules>
+        <!--手机号校验规则-->
+        <module>lrcore-bizrule-phone-plugin</module>
+        <!--金额验证规则-->
+        <module>lrcore-bizrule-amount-plugin</module>
+    </modules>
+</project>

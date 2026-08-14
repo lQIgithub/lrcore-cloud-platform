@@ -1,0 +1,14 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.lrcore</groupId>
+        <artifactId>lrcore-bizrule-plugin-modules</artifactId>
+        <version>v1.0.0</version>
+    </parent>
+
+    <artifactId>lrcore-bizrule-phone-plugin</artifactId>
+    <name>phone-plugin手机号验证规则</name>
+    <description>手机号验证规则</description>
+
+</project>

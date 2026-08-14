@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.lrcore</groupId>
+    <artifactId>lrcore-cloud-platform</artifactId>
+    <version>v1.0.0</version>
+
+    <name>lrcore-cloud-平台服务</name>
+    <description>云平台-微服务系统</description>
+    <modules>
+        <!--框架基础核心服务-->
+        <module>lrcore-base-modules</module>
+        <!--业务服务实现模块-->
+        <module>lrcore-buzi-modules</module>
+    </modules>
+    <packaging>pom</packaging>
+
+
+    <properties>
+        <!--项目动态配置项目名称-->
+        <service-name-gateway>lrcore-gateway</service-name-gateway>
+        <service-name-auth>lrcore-auth</service-name-auth>
+        <service-name-system>lrcore-system</service-name-system>
+        <service-name-rule>lrcore-rule</service-name-rule>
+        <service-name-flowable>lrcore-flowable</service-name-flowable>
+        <!--新增的业务模块依次往下添加-->
+
+        <!--业务系统版本号-->
+        <lrcore.version>v1.0.0</lrcore.version>
+
+        <!--基础框架版本号-->
+        <lrcore-platform-tools.version>2.0.0</lrcore-platform-tools.version>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>25</java.version>
+        <spring-boot.version>4.1.0</spring-boot.version>
+        <spring-cloud.version>2025.1.2</spring-cloud.version>
+        <spring-cloud-alibaba.version>2025.1.0.0</spring-cloud-alibaba.version>
+        <spring-boot-admin.version>4.0.2</spring-boot-admin.version>
+
+        <lombok.version>1.18.44</lombok.version>
+        <hutool.version>5.8.44</hutool.version>
+        <springdoc.version>3.0.2</springdoc.version>
+
+        <!--持久化框架-->
+        <mybatis-flex.version>1.11.8</mybatis-flex.version>
+    </properties>
+
+    <!-- 依赖声明 -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- SpringCloud 微服务 -->
+            <dependency>
+                <groupId>com.lrcore</groupId>
+                <artifactId>lrcore-platform-tools-dependencies</artifactId>
+                <version>${lrcore-platform-tools.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- 各业务系统对外暴露的OpenAPI接口模块 -->
+
+            <!-- 系统模块API接口 -->
+            <dependency>
+                <groupId>com.lrcore</groupId>
+                <artifactId>lrcore-system-api</artifactId>
+                <version>${lrcore.version}</version>
+            </dependency>
+
+            <!-- 其他业务模块API接口依次往下追加 -->
+            <dependency>
+                <groupId>com.lrcore</groupId>
+                <artifactId>lrcore-flowable-api</artifactId>
+                <version>${lrcore.version}</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <profiles>
+        <!--开发环境-->
+        <profile>
+            <id>dev</id>
+            <!-- 默认激活dev环境 -->
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <nacos.active>dev</nacos.active>
+                <!--nacos文件后缀统一-->
+                <nacos.file-extension>yml</nacos.file-extension>
+
+                <lrcore.gateway-port>10801</lrcore.gateway-port>
+                <lrcore.auth-port>10802</lrcore.auth-port>
+                <lrcore.system-port>10803</lrcore.system-port>
+                <lrcore.rule-port>10804</lrcore.rule-port>
+                <lrcore.flowable-port>10805</lrcore.flowable-port>
+                <!-- 企业业务模块 -->
+
+                <!-- nacos配置 -->
+                <nacos.namespace>aaf502bc-1e5b-42ae-b31f-6d77dde262c6</nacos.namespace>
+                <nacos.group>DEFAULT_GROUP</nacos.group>
+                <nacos.server-addr>localhost:8848</nacos.server-addr>
+                <nacos.username>nacos</nacos.username>
+                <nacos.password>Lr@123456.</nacos.password>
+            </properties>
+        </profile>
+    </profiles>
+
+    <build>
+        <resources>
+            <!--
+            第一个 resource 配置：对所有文件启用 filtering，但排除 .p12 文件
+            第二个 resource 配置：对 .p12 文件禁用 filtering，直接复制
+            -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/*.*</include>
+                </includes>
+                <excludes>
+                    <exclude>**/*.p12</exclude>
+                    <exclude>**/*.cer</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>**/*.p12</include>
+                    <include>**/*.cer</include>
+                </includes>
+            </resource>
+        </resources>
+        <plugins>
+            <!--这里配置的插件非常重要-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <parameters>true</parameters>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <!-- 必须开启：保留方法参数名， Spel解析依赖 用于防抖aop-->
+                    <parameters>true</parameters>
+                    <annotationProcessorPaths>
+                        <!-- Lombok 必须在mybatis-flex-processor前，防止编译器报错 -->
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version> <!-- 确认版本，避免不一样而导致编译失败，多模块无法引用 -->
+                        </path>
+                        <path>
+                            <groupId>com.mybatis-flex</groupId>
+                            <artifactId>mybatis-flex-processor</artifactId>
+                            <version>${mybatis-flex.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <!-- 声明 APT 生成目录，IDEA 会自动识别 -->
+                    <generatedSourcesDirectory>${project.build.directory}/generated-sources/annotations
+                    </generatedSourcesDirectory>
+                </configuration>
+            </plugin>
+        </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>repackage</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <parameters>true</parameters>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <encoding>${project.build.sourceEncoding}</encoding>
+                        <!-- 必须开启：保留方法参数名， Spel解析依赖 用于防抖aop-->
+                        <parameters>true</parameters>
+                        <annotationProcessorPaths>
+                            <!-- Lombok 必须在mybatis-flex-processor前，防止编译器报错 -->
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version> <!-- 确认版本，避免不一样而导致编译失败，多模块无法引用 -->
+                            </path>
+                            <path>
+                                <groupId>com.mybatis-flex</groupId>
+                                <artifactId>mybatis-flex-processor</artifactId>
+                                <version>${mybatis-flex.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                        <!-- 声明 APT 生成目录，IDEA 会自动识别 -->
+                        <generatedSourcesDirectory>${project.build.directory}/generated-sources/annotations
+                        </generatedSourcesDirectory>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+</project>

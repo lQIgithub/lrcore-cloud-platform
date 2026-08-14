@@ -1,0 +1,47 @@
+# Tomcat
+server:
+  port: ${lrcore.gateway-port}
+
+# Spring
+spring:
+  application:
+    # 应用名称
+    name: ${service-name-gateway}
+  profiles:
+    # 环境配置
+    active: ${nacos.active}
+  cloud:
+    nacos:
+      discovery:
+        # 服务注册地址
+        server-addr: ${nacos.server-addr}
+        namespace: ${nacos.namespace}
+        group: ${nacos.group}
+        username: ${nacos.username}
+        password: ${nacos.password}
+      config:
+        # 配置中心地址
+        server-addr: ${nacos.server-addr}
+        namespace: ${nacos.namespace}
+        group: ${nacos.group}
+        username: ${nacos.username}
+        password: ${nacos.password}
+    sentinel:
+      # 取消控制台懒加载
+      eager: true
+      transport:
+        # 控制台地址
+        dashboard: ${nacos.server-addr}:8718
+      # nacos配置持久化
+      datasource:
+        ds1:
+          nacos:
+            server-addr: ${nacos.server-addr}:8848
+            dataId: sentinel-lrcore-gateway
+            groupId: DEFAULT_GROUP
+            data-type: json
+            rule-type: gw-flow
+  config:
+    import:
+      - nacos:application-${nacos.active}.${nacos.file-extension}
+      - nacos:${service-name-gateway}-${nacos.active}.${nacos.file-extension}

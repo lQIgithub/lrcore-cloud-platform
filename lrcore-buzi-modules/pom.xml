@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.lrcore</groupId>
+        <artifactId>lrcore-cloud-platform</artifactId>
+        <version>v1.0.0</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>lrcore-buzi-modules</artifactId>
+    <name>buzi-modules管理业务模块</name>
+    <description>
+        buzi-modules业务模块
+    </description>
+    <packaging>pom</packaging>
+
+    <modules>
+
+        <!--后端system服务模块-->
+        <module>lrcore-system-modules</module>
+
+        <!--业务规则管理模块-->
+        <module>lrcore-bizrule-modules</module>
+
+        <!--业务规则插件模块-->
+        <module>lrcore-bizrule-plugin-modules</module>
+        
+        <!--工作流引擎服务模块-->
+        <module>lrcore-flowable-modules</module>
+    </modules>
+
+</project>

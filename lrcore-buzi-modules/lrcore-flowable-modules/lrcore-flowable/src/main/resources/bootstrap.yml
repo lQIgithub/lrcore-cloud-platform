@@ -1,0 +1,48 @@
+# Tomcat
+server:
+  port: ${lrcore.flowable-port}
+# Flowable工作流引擎配置
+flowable:
+  # 自动创建/更新数据库表结构（关键配置：Flowable默认为false，不自动建表）
+  database-schema-update: true
+  # 关闭异步执行器（按需开启）
+  async-executor-activate: false
+  async-history-executor-activate: false
+  # 不检查流程定义文件
+  check-process-definitions: false
+
+# 调试日志：排查Flowable自动配置问题
+logging:
+  level:
+    org.flowable: DEBUG
+    com.lrcore.common.flowable: DEBUG
+    org.springframework.boot.autoconfigure: INFO
+
+# Spring
+spring:
+  application:
+    # 应用名称
+    name: ${service-name-flowable}
+  profiles:
+    # 环境配置
+    active: ${nacos.active}
+  cloud:
+    nacos:
+      discovery:
+        # 服务注册地址
+        server-addr: ${nacos.server-addr}
+        namespace: ${nacos.namespace}
+        group: ${nacos.group}
+        username: ${nacos.username}
+        password: ${nacos.password}
+      config:
+        # 配置中心地址
+        server-addr: ${nacos.server-addr}
+        namespace: ${nacos.namespace}
+        group: ${nacos.group}
+        username: ${nacos.username}
+        password: ${nacos.password}
+  config:
+    import:
+      - nacos:application-${nacos.active}.${nacos.file-extension}
+      - nacos:${service-name-flowable}-${nacos.active}.${nacos.file-extension}
