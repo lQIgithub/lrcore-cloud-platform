@@ -24,9 +24,7 @@
 
         <!--业务规则插件模块-->
         <module>lrcore-bizrule-plugin-modules</module>
-        
-        <!--工作流引擎服务模块-->
-        <module>lrcore-flowable-modules</module>
+
     </modules>
 
 </project>
