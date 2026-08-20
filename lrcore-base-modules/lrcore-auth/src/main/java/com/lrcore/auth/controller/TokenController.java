@@ -10,7 +10,7 @@ import com.lrcore.common.core.utils.SecurityUtils;
 import com.lrcore.common.core.web.controller.BaseController;
 import com.lrcore.common.core.web.domain.ApiResult;
 import com.lrcore.common.security.auth.AuthUtil;
-import com.lrcore.common.security.model.TokenDto;
+import com.lrcore.common.security.token.model.TokenDto;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.servlet.http.HttpServletRequest;

@@ -20,6 +20,7 @@ import org.springframework.util.FastByteArrayOutputStream;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -100,9 +101,19 @@ public class ValidateCodeServiceImpl implements ValidateCodeService {
         if (captcha == null) {
             throw new CaptchaException("验证码已失效");
         }
-        redisService.deleteObject(verifyKey);
+        // SADD 原子认领所提交的码：并发同码仅一个请求认领返回 1（其余返回 0），
+        // 消除"读到即删"的并发窗口（与 MfaSmsCodeService 原子消费同方案）；
+        // 比对忽略大小写，故认领小写码；错码仅消费错码本身，不影响正确码重试
+        String usedKey = verifyKey + ":used";
+        Long added = redisService.setCacheSet(usedKey, Set.<Object>of()).add(code.toLowerCase());
+        if (added == null || added == 0L) {
+            throw new CaptchaException("验证码错误");
+        }
+        redisService.expire(usedKey, Constants.CAPTCHA_EXPIRATION, TimeUnit.MINUTES);
         if (!code.equalsIgnoreCase(captcha)) {
             throw new CaptchaException("验证码错误");
         }
+        // 校验成功后删除码键（与原一次性语义一致）；消费声明键随 TTL 清理
+        redisService.deleteObject(verifyKey);
     }
 }

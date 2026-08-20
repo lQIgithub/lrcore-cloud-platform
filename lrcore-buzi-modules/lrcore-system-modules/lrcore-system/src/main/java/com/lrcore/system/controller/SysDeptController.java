@@ -1,6 +1,6 @@
 package com.lrcore.system.controller;
 
-import com.lrcore.common.annotations.annotation.Idempotent;
+import com.lrcore.common.annotations.annotation.idempotent.Idempotent;
 import com.lrcore.common.core.web.controller.BaseController;
 import com.lrcore.common.core.web.domain.ApiResult;
 import com.lrcore.common.core.web.domain.TreeNode;
