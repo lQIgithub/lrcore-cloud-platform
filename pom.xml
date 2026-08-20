@@ -97,7 +97,8 @@
                 <!-- nacos配置 -->
                 <nacos.namespace>aaf502bc-1e5b-42ae-b31f-6d77dde262c6</nacos.namespace>
                 <nacos.group>DEFAULT_GROUP</nacos.group>
-                <nacos.server-addr>lrcore.io:8848</nacos.server-addr>
+<!--                <nacos.server-addr>localhost:8848</nacos.server-addr>-->
+                <nacos.server-addr>10.10.1.204:8848</nacos.server-addr>
                 <nacos.username>nacos</nacos.username>
                 <nacos.password>Lr@123456.</nacos.password>
             </properties>
