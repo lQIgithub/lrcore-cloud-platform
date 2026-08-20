@@ -5,6 +5,8 @@ import com.lrcore.common.core.utils.JwtUtils;
 import com.lrcore.common.core.utils.ServletUtils;
 import com.lrcore.gateway.config.properties.IgnoreWhiteProperties;
 import io.jsonwebtoken.Claims;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -48,28 +50,28 @@ import java.util.Map;
  * @Date: 2026/8/21
  * @Version: 1.0
  */
+@Slf4j
 @Configuration
 @EnableWebFluxSecurity
+@RequiredArgsConstructor
 public class GatewaySecurityConfig {
-
-    private static final Logger log = LoggerFactory.getLogger(GatewaySecurityConfig.class);
+    private final IgnoreWhiteProperties ignoreWhite;
 
     /** 网关公开放行地址。 */
     private static final String[] PERMIT_PATHS = {
-            "/auth/login", "/auth/logout", "/auth/refresh",
-            "/auth/captcha", "/auth/captchaImage",
-            "/lrcore-auth/**", "/oauth2/**", "/.well-known/**",
-            "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**",
-            "/v3/api-docs/**", "/v3/api-docs.yaml", "/v3/api-docs.yml",
-            "/webjars/**", "/doc.html",
-            "/actuator/**", "/favicon.ico", "/error"
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/swagger-resources/**",
+            "/v3/api-docs/**",
+            "/v3/api-docs.yaml",
+            "/v3/api-docs.yml",
+            "/webjars/**",
+            "/doc.html",
+            "/actuator/**",
+            "/favicon.ico",
+            "/error"
     };
 
-    private final IgnoreWhiteProperties ignoreWhite;
-
-    public GatewaySecurityConfig(IgnoreWhiteProperties ignoreWhite) {
-        this.ignoreWhite = ignoreWhite;
-    }
 
     /**
      * 网关资源服务器安全过滤链。
