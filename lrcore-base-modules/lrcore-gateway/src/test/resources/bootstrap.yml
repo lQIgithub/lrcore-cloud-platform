@@ -1,0 +1,10 @@
+# 测试环境 shadow 生产 bootstrap.yml（test-classes 优先于 classes 加载）：
+# 不连接 Nacos、不导入 nacos 配置，占位符全部内联，避免 ConfigData 阶段解析失败。
+server:
+  port: 0
+
+spring:
+  application:
+    name: lrcore-gateway
+  profiles:
+    active: dev
