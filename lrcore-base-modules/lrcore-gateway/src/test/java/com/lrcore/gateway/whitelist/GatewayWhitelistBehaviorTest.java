@@ -40,8 +40,11 @@ import org.springframework.test.web.reactive.server.WebTestClient;
                 "spring.cloud.sentinel.enabled=false",
                 "spring.cloud.gateway.server.webflux.enabled=false",
                 "spring.cloud.gateway.enabled=false",
-                // 模拟 Nacos 配置的 security.ignore.whites 白名单
+                // 模拟 Nacos 配置的 security.ignore.whites 白名单（与生产要求一致：
+                // 登录/验证码等无令牌入口必须同时在 AuthFilter 白名单中）
                 "security.ignore.whites[0]=/nacos-whitelist/**",
+                "security.ignore.whites[1]=/lrcore-auth/api/v1/auth/**",
+                "security.ignore.whites[2]=/api/v1/auth/captcha",
                 // 关闭 SAS 令牌校验（issuer 置空）→ 所有令牌均解码失败，复现缺陷场景
                 "lrcore.oauth2.issuer="
         })
@@ -118,11 +121,14 @@ class GatewayWhitelistBehaviorTest {
     }
 
     // ==================== 受保护路径 + 无效/无令牌 → 必须 401（授权门禁仍生效） ====================
-    // 注意：平台既有约定（ServletUtils.webFluxResponseWriter）——HTTP 状态为 200，
-    // 业务状态码放在响应体 code 字段（"401"），前端按 body.code 识别未登录。
+    // 注意一：生产顺序为 AuthFilter(-200) → 安全链(-100)。非白名单路径的无效/缺失令牌
+    //         由 AuthFilter 先行 401（安全链不再触及）；白名单路径的无效令牌则由安全链
+    //         “按匿名继续 + 授权放行”（本测试类的核心验证）。
+    // 注意二：平台既有约定（ServletUtils.webFluxResponseWriter）——HTTP 状态为 200，
+    //         业务状态码放在响应体 code 字段（"401"），前端按 body.code 识别未登录。
 
     /**
-     * 受保护路径 + 无效令牌 → 401 JSON（修复不能让受保护接口裸奔）。
+     * 受保护路径 + 无效令牌 → 401（AuthFilter 双轨均失败 → 拦截；修复不能让受保护接口裸奔）。
      */
     @Test
     void invalidTokenOnProtectedPathShould401() {
@@ -131,12 +137,11 @@ class GatewayWhitelistBehaviorTest {
                 .exchange()
                 .expectBody(String.class).value(body ->
                         org.assertj.core.api.Assertions.assertThat(body)
-                                .contains("\"code\":\"401\"")
-                                .contains("登录状态已过期或令牌无效"));
+                                .contains("\"code\":\"401\""));
     }
 
     /**
-     * 受保护路径 + 无令牌 → 401 JSON。
+     * 受保护路径 + 无令牌 → 401（AuthFilter“令牌不能为空”）。
      */
     @Test
     void noTokenOnProtectedPathShould401() {
@@ -144,7 +149,58 @@ class GatewayWhitelistBehaviorTest {
                 .exchange()
                 .expectBody(String.class).value(body ->
                         org.assertj.core.api.Assertions.assertThat(body)
-                                .contains("\"code\":\"401\"")
-                                .contains("登录状态已过期或令牌无效"));
+                                .contains("\"code\":\"401\""));
+    }
+
+    // ==================== 旧链路合法令牌：双轨放行 + 用户头注入 + 内部标记防伪造 ====================
+
+    /**
+     * 旧 HS512 合法令牌（Redis 登录态存在）→ AuthFilter 校验通过并注入 user_key/user_id/username，
+     * 安全链双轨解码再次校验通过 → 受保护路径放行（双轨全链路）。
+     * 同时验证：外部请求伪造的 from-source: inner 头被网关清除（防伪造绕过）。
+     */
+    @Test
+    void validLegacyTokenPassesWithUserHeadersInjectedAndInnerHeaderStripped() {
+        java.util.Map<String, Object> claims = new java.util.HashMap<>(4);
+        claims.put("user_key", "test-user-key");
+        claims.put("user_id", "1");
+        claims.put("username", "test-user");
+        String legacyToken = com.lrcore.common.core.utils.JwtUtils.createToken(claims, 30, java.util.concurrent.TimeUnit.MINUTES);
+
+        client.get().uri("/lrcore-system/some-protected-api")
+                .header("Authorization", "Bearer " + legacyToken)
+                .header("from-source", "inner") // 外部伪造，必须被清除
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class).value(body ->
+                        org.assertj.core.api.Assertions.assertThat(body).contains("PASSED"));
+
+        java.util.Map<String, String> forwarded = TestApplication.LAST_FORWARDED_HEADERS.get();
+        org.assertj.core.api.Assertions.assertThat(forwarded).isNotNull();
+        // 用户信息头已注入
+        org.assertj.core.api.Assertions.assertThat(forwarded.get("user_key")).isEqualTo("test-user-key");
+        org.assertj.core.api.Assertions.assertThat(forwarded.get("user_id")).isEqualTo("1");
+        org.assertj.core.api.Assertions.assertThat(forwarded.get("username")).isEqualTo("test-user");
+        // 伪造的内部来源标记已被清除
+        org.assertj.core.api.Assertions.assertThat(forwarded.keySet()).doesNotContain("from-source");
+    }
+
+    /**
+     * 防伪造回归：白名单直通路径同样必须清除外部伪造的 from-source: inner，
+     * 否则外部客户端可借白名单路径携带该头绕过下游资源服务器鉴权。
+     */
+    @Test
+    void forgedInnerHeaderIsStrippedOnWhitelistPath() {
+        client.get().uri("/nacos-whitelist/anything")
+                .header("from-source", "inner")
+                .header("Authorization", "Bearer " + INVALID_TOKEN)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class).value(body ->
+                        org.assertj.core.api.Assertions.assertThat(body).contains("PASSED"));
+
+        java.util.Map<String, String> forwarded = TestApplication.LAST_FORWARDED_HEADERS.get();
+        org.assertj.core.api.Assertions.assertThat(forwarded).isNotNull();
+        org.assertj.core.api.Assertions.assertThat(forwarded.keySet()).doesNotContain("from-source");
     }
 }

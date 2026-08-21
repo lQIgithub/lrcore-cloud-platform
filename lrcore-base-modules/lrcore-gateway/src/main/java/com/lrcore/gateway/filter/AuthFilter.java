@@ -71,7 +71,10 @@ public class AuthFilter implements GlobalFilter, Ordered {
         String url = request.getURI().getPath();
         // 跳过不需要验证的路径
         if (FunStrUtils.matches(url, ignoreWhite.getWhites())) {
-            return chain.filter(exchange);
+            // 白名单直通前同样清除内部请求来源标记，防止外部客户端伪造 from-source: inner
+            // 绕过下游资源服务器鉴权（内部 Feign 调用不经网关，不受影响）
+            removeHeader(mutate, SecurityConstants.FROM_SOURCE);
+            return chain.filter(exchange.mutate().request(mutate.build()).build());
         }
         String token = getToken(request);
         if (FunStrUtils.isEmpty(token)) {
