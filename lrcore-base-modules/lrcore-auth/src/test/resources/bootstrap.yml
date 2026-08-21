@@ -1,0 +1,2 @@
+# 测试用空 bootstrap：屏蔽主 bootstrap.yml 的 Nacos 配置导入与服务注册，
+# 使集成测试在无 Nacos/Redis/MySQL 的纯本地环境启动。

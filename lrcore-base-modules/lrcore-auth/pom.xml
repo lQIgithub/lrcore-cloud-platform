@@ -28,6 +28,19 @@
             <version>${lrcore.version}</version>
         </dependency>
 
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Spring 7：WebTestClient 位于 spring-test，但其运行期依赖 webflux 的 reactive 客户端 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webflux</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
