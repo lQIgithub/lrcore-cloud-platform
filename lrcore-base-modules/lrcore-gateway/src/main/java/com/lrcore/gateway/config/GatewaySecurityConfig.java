@@ -103,7 +103,11 @@ public class GatewaySecurityConfig {
             "/lrcore-auth/oauth2/**",
             "/lrcore-auth/.well-known/**",
             "/lrcore-auth/userinfo",
-            "/lrcore-auth/connect/logout"
+            "/lrcore-auth/connect/logout",
+            // ===== SSO 单点登录宿主侧（lrcore-auth 自持登录页/验证码/登录提交/登出） =====
+            "/lrcore-auth/login",
+            "/lrcore-auth/logout",
+            "/lrcore-auth/sso/**"
     };
 
     /**
@@ -161,30 +165,34 @@ public class GatewaySecurityConfig {
      *       （见 {@link #lrcoreSasReactiveJwtDecoder()}）。</li>
      * </ol>
      * 两轨都失败时抛出 {@link JwtException}，由失败处理器按匿名放行（受保护路径再由授权判定 401）。
+     * <p>
+     * <b>[关键修复 2026-08-22，真实环境 E2E 发现]</b> 旧轨道必须经 {@code Mono.fromCallable}
+     * 包装：直接 {@code Mono.just(buildLegacyJwt(token))} 时，RS256 令牌在 JJWT 验签阶段
+     * <b>同步抛出</b>异常（如 {@code InvalidKeyException: Key bytes can only be specified
+     * for HMAC signatures}），异常发生在 Publisher 组装期而非订阅期，{@code onErrorResume}
+     * 根本捕获不到 → 回退 SAS 轨道的死代码 → 所有 SSO 令牌被网关拒绝。
+     * 另：回退条件放宽为“旧轨任意异常”——RS256 令牌的旧轨失败并非 {@link JwtException}
+     * （JJWT 的 {@code InvalidKeyException} 继承自 {@code GeneralSecurityException}），
+     * 按类型过滤会漏掉最主要的回退场景。
      *
      * @return 响应式 JWT 解码器
      */
     @Bean
     @Primary
     public ReactiveJwtDecoder lrcoreReactiveJwtDecoder() {
-        ReactiveJwtDecoder legacyDecoder = token -> {
+        ReactiveJwtDecoder legacyDecoder = token -> Mono.fromCallable(() -> {
             try {
-                return Mono.just(buildLegacyJwt(token));
-            } catch (JwtException e) {
-                throw e;
+                return buildLegacyJwt(token);
             } catch (Exception e) {
-                // 旧格式令牌解析失败（签名不符/过期/格式错误）——交由调用方决定是否回退
+                // 旧格式令牌解析/验签失败（密钥类型不符/签名不符/过期/格式错误）——交由回退逻辑处理
                 throw new JwtException("旧格式令牌校验失败: " + e.getMessage(), e);
             }
-        };
+        });
         ReactiveJwtDecoder sasDecoder = buildSasReactiveJwtDecoder();
         return token -> legacyDecoder.decode(token)
                 .onErrorResume(ex -> {
-                    if (ex instanceof JwtException) {
-                        log.debug("[网关鉴权] 旧 HS512 令牌校验失败，回退授权服务器令牌校验: {}", ex.getMessage());
-                        return sasDecoder.decode(token);
-                    }
-                    return Mono.error(ex);
+                    log.debug("[网关鉴权] 旧 HS512 令牌校验失败，回退授权服务器令牌校验: {}", ex.getMessage());
+                    return sasDecoder.decode(token);
                 });
     }
 

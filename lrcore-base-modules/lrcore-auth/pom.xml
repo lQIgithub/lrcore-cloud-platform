@@ -28,6 +28,20 @@
             <version>${lrcore.version}</version>
         </dependency>
 
+        <!-- SSO OAuth2 授权服务器 JDBC 持久化（lrcore.auth.jdbc.enabled=true 时启用；
+             开发默认内存兜底，此依赖仅为生产 JDBC 路径提供运行时类）。
+             注意：本服务启动类排除了 DataSourceAutoConfiguration，
+             数据源由 LrcoreSsoJdbcConfiguration 按 Nacos 配置显式装配 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -38,6 +52,12 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webflux</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- SSO 全链路集成测试：H2 内存库承载 OAuth2 三表（官方 DDL） -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
 
