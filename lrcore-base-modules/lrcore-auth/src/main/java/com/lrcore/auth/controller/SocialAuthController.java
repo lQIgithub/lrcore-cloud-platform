@@ -2,11 +2,11 @@ package com.lrcore.auth.controller;
 
 import com.lrcore.auth.domain.SocialAuthorizeResult;
 import com.lrcore.auth.domain.SocialCallbackResult;
+import com.lrcore.auth.domain.SsoTokenDto;
 import com.lrcore.auth.form.SocialBindForm;
 import com.lrcore.auth.service.SocialLoginService;
 import com.lrcore.common.core.web.controller.BaseController;
 import com.lrcore.common.core.web.domain.ApiResult;
-import com.lrcore.common.security.token.model.TokenDto;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * @Describe: 第三方（微信扫码）登录控制器。
  * <p>
- * 路由（均在网关放行前缀 /lrcore-auth/api/v1/auth/** 之下，匿名可访问）：
+ * 路由（均在网关放行前缀 /lrcore-auth/api/v1/auth/social/** 之下，匿名可访问）：
  * <ul>
  *   <li>GET  /api/v1/auth/social/authorize?platform=wechat —— 获取授权页 URL + state（前端 iframe 渲染二维码）；</li>
  *   <li>GET  /api/v1/auth/social/callback?platform=wechat&amp;code=...&amp;state=... —— 扫码回调，已绑定出令牌/未绑定回传 pending；</li>
@@ -63,10 +63,10 @@ public class SocialAuthController extends BaseController {
         return ApiResult.success(socialLoginService.callback(platform, code, state));
     }
 
-    @Schema(description = "绑定本地账号并登录")
+    @Schema(description = "绑定本地账号并登录（签发 SAS 令牌）")
     @PostMapping("/bind")
-    public ApiResult<TokenDto> bind(@Valid @RequestBody SocialBindForm form) {
-        TokenDto tokenDto = socialLoginService.bind(
+    public ApiResult<SsoTokenDto> bind(@Valid @RequestBody SocialBindForm form) {
+        SsoTokenDto tokenDto = socialLoginService.bind(
                 form.getPendingToken(), form.getPlatform(), form.getUsername(), form.getPassword());
         return ApiResult.success("绑定成功", tokenDto);
     }

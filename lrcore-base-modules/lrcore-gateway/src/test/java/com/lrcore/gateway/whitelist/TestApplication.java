@@ -1,6 +1,5 @@
 package com.lrcore.gateway.whitelist;
 
-import com.lrcore.common.redis.service.RedisService;
 import com.lrcore.gateway.config.GatewaySecurityConfig;
 import com.lrcore.gateway.config.properties.IgnoreWhiteProperties;
 import com.lrcore.gateway.config.properties.Oauth2ServerProperties;
@@ -80,19 +79,5 @@ public class TestApplication {
     @Order(-200)
     WebFilter authFilterWebFilter(AuthFilter authFilter) {
         return (exchange, chain) -> authFilter.filter(exchange, chain::filter);
-    }
-
-    /**
-     * 测试用 Redis 登录态服务：hasKey 恒为 true（模拟“旧双令牌链路存在有效登录态”）。
-     * 不初始化 Redis 连接：测试路径中除 hasKey（已覆写）外不会实际访问 Redis。
-     */
-    @Bean
-    RedisService redisService() {
-        return new RedisService(null) {
-            @Override
-            public Boolean hasKey(String key) {
-                return true;
-            }
-        };
     }
 }

@@ -38,7 +38,7 @@ import java.util.Collections;
  *       供 SSO 登录过滤器（{@link LrcoreSsoLoginFilter}）调用；</li>
  *   <li>{@link LrcoreTokenCustomizer}：签发 JWT 时注入业务 claims
  *       （sub=user_id / user_id / username / roles / tenant_id / ent_id / dept_id），
- *       网关双轨鉴权的 sasPass 依赖该契约映射下游请求头。</li>
+ *       网关（纯 SAS 鉴权）的 sasPass 依赖该契约映射下游请求头。</li>
  * </ul>
  * PasswordEncoder 由 lrcore-common-core 的 PasswordEncoderAutoConfiguration 提供
  * （BCrypt, 强度 10），此处直接注入使用。

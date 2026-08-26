@@ -1,11 +1,9 @@
 package com.lrcore.gateway.config;
 
 import com.lrcore.common.core.constant.HttpStatus;
-import com.lrcore.common.core.utils.JwtUtils;
 import com.lrcore.common.core.utils.ServletUtils;
 import com.lrcore.gateway.config.properties.IgnoreWhiteProperties;
 import com.lrcore.gateway.config.properties.Oauth2ServerProperties;
-import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -29,10 +27,7 @@ import org.springframework.security.web.server.ServerAuthenticationEntryPoint;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * <p>类模块说明</p>
@@ -41,20 +36,19 @@ import java.util.Map;
  * <p>
  * 背景：lrcore-common-gateway 引入 spring-boot-starter-oauth2-resource-server 后，Spring Security
  * 默认会把网关所有路由全部拦截（401/403），导致前端所有接口（含登录、验证码、业务接口）都无法访问。
- * 本配置显式提供一条与现有网关鉴权（AuthFilter 的 JWT + Redis 校验）兼容的过滤链：
+ * 本配置显式提供一条与现有网关鉴权（AuthFilter 的 SSO JWT 校验）兼容的过滤链：
  * <ul>
- *   <li>放行公开地址（登录、登出、刷新、验证码、OAuth2 端点、OIDC 发现、Swagger、Actuator），
+ *   <li>放行公开地址（登录、登出、验证码、OAuth2 端点、OIDC 发现、Swagger、Actuator），
  *       并叠加 Nacos 配置的 security.ignore.whites 白名单；</li>
- *   <li>其余路由走 OAuth2 Resource Server 的 JWT 校验——双轨解码器：
- *       旧 HS512 双令牌（共享密钥，{@link JwtUtils}）优先，失败后回退授权服务器
- *       RS256 JWT（JWKS 公钥 + iss 校验），兼容旧前端与新 OIDC 登录双轨并行；</li>
- *   <li>未认证/令牌无效统一返回 401 JSON（与 AuthFilter 返回体一致，供前端识别 TOKEN 过期）。</li>
+ *   <li>其余路由走 OAuth2 Resource Server 的 JWT 校验 —— 统一由授权服务器（SAS）
+ *       RS256 JWT（JWKS 公钥 + iss 校验）校验，全面取代若依旧 HS512 双 Token 链路；
+ *       未认证/令牌无效统一返回 401 JSON。</li>
  * </ul>
  * <p>
  * <b>关键修复（配置白名单仍被 401 的根因）：</b>
  * Spring Security 7.x 中 Bearer 令牌校验失败时，默认失败处理会<b>直接调用
  * AuthenticationEntryPoint 返回 401</b>——该动作发生在授权判定（permitAll/白名单）之前，
- * 因此只要请求头携带了无法通过解码的令牌（旧令牌过期、SAS 新令牌、脏数据），
+ * 因此只要请求头携带了无法通过解码的令牌（令牌过期、脏数据），
  * 即使路径已配置白名单也会被 401 拦截。此处显式设置
  * {@code authenticationFailureHandler}：校验失败时<b>按匿名上下文继续过滤链</b>
  * （注意：WebFlux 下失败处理器返回的 Mono 替代过滤器结果，必须显式
@@ -67,8 +61,8 @@ import java.util.Map;
  *
  * @ClassName: GatewaySecurityConfig
  * @Author: lrcore
- * @Date: 2026/8/21
- * @Version: 1.1
+ * @Date 2026/8/24
+ * @Version: 2.0
  */
 @Slf4j
 @Configuration
@@ -97,8 +91,8 @@ public class GatewaySecurityConfig {
             "/error",
             // ===== 网关自身验证码路由（RouterFunctionConfiguration） =====
             "/api/v1/auth/captcha",
-            // ===== 认证中心（lrcore-auth）存量公开端点：登录/刷新/登出/注册/解锁等 =====
-            "/lrcore-auth/api/v1/auth/**",
+            // ===== 认证中心（lrcore-auth）第三方社交登录入口（SSO 授权码流程） =====
+            "/lrcore-auth/api/v1/auth/social/**",
             // ===== 授权服务器协议端点（经网关对外暴露，OIDC 授权码流程必需） =====
             "/lrcore-auth/oauth2/**",
             "/lrcore-auth/.well-known/**",
@@ -158,50 +152,23 @@ public class GatewaySecurityConfig {
     }
 
     /**
-     * 网关 JWT 解码器（双轨，供资源服务器过滤链使用，@Primary）：
-     * <ol>
-     *   <li>旧双 Token 链路：HS512 + 共享密钥（{@link JwtUtils}），校验签名与时效；</li>
-     *   <li>旧格式校验失败后回退：授权服务器 RS256 JWT，JWKS 公钥验签 + iss/exp 校验
-     *       （见 {@link #lrcoreSasReactiveJwtDecoder()}）。</li>
-     * </ol>
-     * 两轨都失败时抛出 {@link JwtException}，由失败处理器按匿名放行（受保护路径再由授权判定 401）。
+     * 网关 JWT 解码器（@Primary，统一由授权服务器 SAS RS256 验签）：
+     * 经 JWKS 公钥验签，并校验 iss/exp 等标准声明。若依遗留的 HS512 双 Token
+     * 解码轨道已全面移除，网关仅接受 SAS 授权服务器签发的 RS256 JWT。
      * <p>
-     * <b>[关键修复 2026-08-22，真实环境 E2E 发现]</b> 旧轨道必须经 {@code Mono.fromCallable}
-     * 包装：直接 {@code Mono.just(buildLegacyJwt(token))} 时，RS256 令牌在 JJWT 验签阶段
-     * <b>同步抛出</b>异常（如 {@code InvalidKeyException: Key bytes can only be specified
-     * for HMAC signatures}），异常发生在 Publisher 组装期而非订阅期，{@code onErrorResume}
-     * 根本捕获不到 → 回退 SAS 轨道的死代码 → 所有 SSO 令牌被网关拒绝。
-     * 另：回退条件放宽为“旧轨任意异常”——RS256 令牌的旧轨失败并非 {@link JwtException}
-     * （JJWT 的 {@code InvalidKeyException} 继承自 {@code GeneralSecurityException}），
-     * 按类型过滤会漏掉最主要的回退场景。
+     * 配置见 {@link Oauth2ServerProperties}（lrcore.oauth2.*）；issuer 未配置时返回
+     * <b>恒失败的解码器</b>（保证 Bean 恒存在），即网关拒绝非 SAS 令牌。
      *
      * @return 响应式 JWT 解码器
      */
     @Bean
     @Primary
     public ReactiveJwtDecoder lrcoreReactiveJwtDecoder() {
-        ReactiveJwtDecoder legacyDecoder = token -> Mono.fromCallable(() -> {
-            try {
-                return buildLegacyJwt(token);
-            } catch (Exception e) {
-                // 旧格式令牌解析/验签失败（密钥类型不符/签名不符/过期/格式错误）——交由回退逻辑处理
-                throw new JwtException("旧格式令牌校验失败: " + e.getMessage(), e);
-            }
-        });
-        ReactiveJwtDecoder sasDecoder = buildSasReactiveJwtDecoder();
-        return token -> legacyDecoder.decode(token)
-                .onErrorResume(ex -> {
-                    log.debug("[网关鉴权] 旧 HS512 令牌校验失败，回退授权服务器令牌校验: {}", ex.getMessage());
-                    return sasDecoder.decode(token);
-                });
+        return buildSasReactiveJwtDecoder();
     }
 
     /**
      * 授权服务器（SAS）RS256 JWT 解码器：经 JWKS 公钥验签，并校验 iss/exp 等标准声明。
-     * <p>
-     * 配置见 {@link Oauth2ServerProperties}（lrcore.oauth2.*）；issuer 未配置时返回
-     * <b>恒失败的解码器</b>（保证 Bean 恒存在，不影响双轨解码器组合），
-     * 即仅兼容旧 HS512 链路。
      *
      * @return 响应式 JWT 解码器
      */
@@ -213,7 +180,7 @@ public class GatewaySecurityConfig {
     private ReactiveJwtDecoder buildSasReactiveJwtDecoder() {
         String issuer = oauth2.getIssuer();
         if (issuer == null || issuer.isBlank()) {
-            log.info("[网关鉴权] 未配置 lrcore.oauth2.issuer，禁用授权服务器令牌校验（仅兼容旧 HS512 双令牌）");
+            log.info("[网关鉴权] 未配置 lrcore.oauth2.issuer，禁用授权服务器令牌校验");
             return token -> Mono.error(new JwtException("未启用授权服务器令牌校验（lrcore.oauth2.issuer 未配置）"));
         }
         String jwkSetUri = oauth2.getJwkSetUri() != null && !oauth2.getJwkSetUri().isBlank()
@@ -237,22 +204,5 @@ public class GatewaySecurityConfig {
                 exchange.getResponse(),
                 message,
                 HttpStatus.UNAUTHORIZED + "");
-    }
-
-    /**
-     * 将旧链路 Claims 包装为 Spring 资源服务器的 {@link Jwt}。
-     */
-    private Jwt buildLegacyJwt(String token) {
-        Claims claims = JwtUtils.parseToken(token);
-        Map<String, Object> headers = new HashMap<>(2);
-        headers.put("alg", "HS512");
-        headers.put("typ", "JWT");
-        Instant issuedAt = claims.getIssuedAt() != null
-                ? claims.getIssuedAt().toInstant()
-                : Instant.now();
-        Instant expiresAt = claims.getExpiration() != null
-                ? claims.getExpiration().toInstant()
-                : null;
-        return new Jwt(token, issuedAt, expiresAt, headers, claims);
     }
 }

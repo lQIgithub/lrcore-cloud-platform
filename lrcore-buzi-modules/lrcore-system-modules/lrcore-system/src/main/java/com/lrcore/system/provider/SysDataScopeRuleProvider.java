@@ -40,9 +40,21 @@ public class SysDataScopeRuleProvider implements DataScopeRuleProvider {
 
     @Override
     public PermissionRule queryRule() {
-        // 1. 获取当前登录用户
+        // 1. 获取当前登录用户。
+        //    纯 SAS 场景下安全上下文为标量(网关注入的 user_id/tenant_id 等头)而无完整
+        //    LoginUser 对象，因此 userId/tenantId 优先取标量，缺省再退回 LoginUser；两者皆无才视为未登录。
+        Long userId = SecurityUtils.getUserId();
+        Long tenantId = SecurityUtils.getTenantId();
         LoginUser loginUser = SecurityUtils.getLoginUser();
-        if (loginUser == null) {
+        if (loginUser != null) {
+            if (userId == null) {
+                userId = loginUser.getUserId();
+            }
+            if (tenantId == null) {
+                tenantId = loginUser.getTenantId();
+            }
+        }
+        if (userId == null) {
             log.warn("未获取到登录用户，返回空权限规则");
             return PermissionRule.builder()
                     .dataPermissionRules(Collections.emptyList())
@@ -50,8 +62,6 @@ public class SysDataScopeRuleProvider implements DataScopeRuleProvider {
                     .build();
         }
 
-        Long tenantId = loginUser.getTenantId();
-        Long userId = loginUser.getUserId();
         log.info("加载数据权限规则: tenantId={}, userId={}", tenantId, userId);
 
         // 2. 查询数据权限规则（行级/数据范围/自定义SQL）

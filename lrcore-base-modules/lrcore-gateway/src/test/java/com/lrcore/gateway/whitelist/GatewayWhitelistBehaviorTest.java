@@ -41,9 +41,9 @@ import org.springframework.test.web.reactive.server.WebTestClient;
                 "spring.cloud.gateway.server.webflux.enabled=false",
                 "spring.cloud.gateway.enabled=false",
                 // 模拟 Nacos 配置的 security.ignore.whites 白名单（与生产要求一致：
-                // 登录/验证码等无令牌入口必须同时在 AuthFilter 白名单中）
+                // SSO/社交登录等无令牌入口必须同时在 AuthFilter 白名单中）
                 "security.ignore.whites[0]=/nacos-whitelist/**",
-                "security.ignore.whites[1]=/lrcore-auth/api/v1/auth/**",
+                "security.ignore.whites[1]=/lrcore-auth/api/v1/auth/social/**",
                 "security.ignore.whites[2]=/api/v1/auth/captcha",
                 // 关闭 SAS 令牌校验（issuer 置空）→ 所有令牌均解码失败，复现缺陷场景
                 "lrcore.oauth2.issuer="
@@ -67,12 +67,12 @@ class GatewayWhitelistBehaviorTest {
     // ==================== 白名单/公开路径 + 无效令牌 → 必须放行（原缺陷：401） ====================
 
     /**
-     * 认证中心登录端点（硬编码 PERMIT_PATHS /lrcore-auth/api/v1/auth/**）：
-     * 请求头携带无效令牌时仍须放行（用户重新登录的前提）。
+     * 认证中心第三方社交登录端点（硬编码 PERMIT_PATHS /lrcore-auth/api/v1/auth/social/**）：
+     * 请求头携带无效令牌时仍须放行（用户从第三方扫码登录的前提）。
      */
     @Test
     void invalidTokenOnHardcodedPermitPathShouldPass() {
-        client.post().uri("/lrcore-auth/api/v1/auth/login")
+        client.get().uri("/lrcore-auth/api/v1/auth/social/authorize")
                 .header("Authorization", "Bearer " + INVALID_TOKEN)
                 .exchange()
                 .expectStatus().isOk()
@@ -113,7 +113,7 @@ class GatewayWhitelistBehaviorTest {
      */
     @Test
     void noTokenOnPermitPathShouldPass() {
-        client.get().uri("/lrcore-auth/api/v1/auth/login")
+        client.get().uri("/lrcore-auth/api/v1/auth/social/authorize")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(String.class).value(body ->
@@ -155,34 +155,29 @@ class GatewayWhitelistBehaviorTest {
     // ==================== 旧链路合法令牌：双轨放行 + 用户头注入 + 内部标记防伪造 ====================
 
     /**
-     * 旧 HS512 合法令牌（Redis 登录态存在）→ AuthFilter 校验通过并注入 user_key/user_id/username，
-     * 安全链双轨解码再次校验通过 → 受保护路径放行（双轨全链路）。
-     * 同时验证：外部请求伪造的 from-source: inner 头被网关清除（防伪造绕过）。
+     * 若依遗留 HS512 令牌（无法经 SAS 授权服务器 RS256 解码）→ AuthFilter 401 拦截
+     * —— 网关作为纯 SAS 资源服务器，不再接受旧双 Token 链路令牌。
      */
     @Test
-    void validLegacyTokenPassesWithUserHeadersInjectedAndInnerHeaderStripped() {
+    void legacyHs512TokenOnProtectedPathShould401() {
         java.util.Map<String, Object> claims = new java.util.HashMap<>(4);
         claims.put("user_key", "test-user-key");
         claims.put("user_id", "1");
         claims.put("username", "test-user");
-        String legacyToken = com.lrcore.common.core.utils.JwtUtils.createToken(claims, 30, java.util.concurrent.TimeUnit.MINUTES);
+        String legacyToken = io.jsonwebtoken.Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(new java.util.Date())
+                .setExpiration(new java.util.Date(System.currentTimeMillis() + 30L * 60 * 1000))
+                .signWith(io.jsonwebtoken.SignatureAlgorithm.HS512,
+                        com.lrcore.common.core.constant.TokenConstants.SECRET)
+                .compact();
 
         client.get().uri("/lrcore-system/some-protected-api")
                 .header("Authorization", "Bearer " + legacyToken)
-                .header("from-source", "inner") // 外部伪造，必须被清除
                 .exchange()
-                .expectStatus().isOk()
                 .expectBody(String.class).value(body ->
-                        org.assertj.core.api.Assertions.assertThat(body).contains("PASSED"));
-
-        java.util.Map<String, String> forwarded = TestApplication.LAST_FORWARDED_HEADERS.get();
-        org.assertj.core.api.Assertions.assertThat(forwarded).isNotNull();
-        // 用户信息头已注入
-        org.assertj.core.api.Assertions.assertThat(forwarded.get("user_key")).isEqualTo("test-user-key");
-        org.assertj.core.api.Assertions.assertThat(forwarded.get("user_id")).isEqualTo("1");
-        org.assertj.core.api.Assertions.assertThat(forwarded.get("username")).isEqualTo("test-user");
-        // 伪造的内部来源标记已被清除
-        org.assertj.core.api.Assertions.assertThat(forwarded.keySet()).doesNotContain("from-source");
+                        org.assertj.core.api.Assertions.assertThat(body)
+                                .contains("\"code\":\"401\""));
     }
 
     /**

@@ -3,7 +3,6 @@ package com.lrcore.gateway.config;
 import com.lrcore.gateway.config.properties.IgnoreWhiteProperties;
 import com.lrcore.gateway.config.properties.Oauth2ServerProperties;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.reactivestreams.Publisher;
 
@@ -20,24 +19,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 双轨 JWT 解码器（{@link GatewaySecurityConfig#lrcoreReactiveJwtDecoder()}）回归测试。
+ * 网关 JWT 解码器（{@link GatewaySecurityConfig#lrcoreReactiveJwtDecoder()}）回归测试 —— 纯 SAS 单轨。
  * <p>
- * 锁定 2026-08-22 真实环境 E2E 发现的缺陷：旧 HS512 轨道对 RS256 令牌
- * <b>同步抛异常</b>（JJWT: "Key bytes can only be specified for HMAC signatures"，
- * {@code InvalidKeyException} 继承 {@code GeneralSecurityException} 而非 {@link JwtException}）。
- * 若旧轨道用 {@code Mono.just(buildLegacyJwt(token))} 直接组装，异常发生在 Publisher
- * 组装期（同步抛出）而非订阅期（错误信号），{@code onErrorResume} 无法捕获，
- * 回退 SAS 轨道成为死代码 —— 所有 SSO 令牌被网关整体拒绝。
- * <p>
- * 断言（hermetic，不依赖真实 AS / 网络）：
+ * 说明：若依遗留的 HS512 双 Token 轨道已全面移除，网关解码器统一为授权服务器（SAS）RS256 JWT
+ * （JWKS 公钥验签 + iss/exp 校验）。本测试锁定以下行为：
  * <ol>
- *   <li>{@code decode(rs256Token)} 调用本身不得同步抛异常（缺陷修复前的直接症状）；</li>
- *   <li>订阅后旧轨失败必须回退 SAS 轨道：最终错误来自 JWKS 获取失败（指向不可达
- *       issuer），而非旧轨包装的 "旧格式令牌校验失败"。</li>
+ *   <li>{@code decode(token)} 调用本身不得同步抛异常（必须是响应式错误，可供 onErrorResume 处理）；</li>
+ *   <li>令牌无法经 SAS 解码（issuer 不可达导致 JWKS 获取失败 / 签名不符 / 过期）时，
+ *       订阅阶段最终抛出异步 JwtException，网关据此 401。</li>
  * </ol>
  *
  * @ClassName: DualTrackJwtDecoderTest
- * @Version: 1.0
+ * @Version: 2.0
  */
 class DualTrackJwtDecoderTest {
 
@@ -76,31 +69,29 @@ class DualTrackJwtDecoderTest {
     }
 
     @Test
-    void rs256Token_decodeMustNotThrowSynchronously() throws Exception {
-        // 缺陷修复前：此处同步抛出 JwtException("旧格式令牌校验失败: Key bytes can only be...")
+    void decode_mustNotThrowSynchronously() throws Exception {
         ReactiveJwtDecoder decoder = config().lrcoreReactiveJwtDecoder();
         String token = rs256Token();
         Publisher<org.springframework.security.oauth2.jwt.Jwt> publisher =
                 assertDoesNotThrow(() -> decoder.decode(token),
-                        "旧轨道同步抛异常会绕过 onErrorResume，回退 SAS 轨道成为死代码");
+                        "decode() 必须以响应式方式失败，不得同步抛异常（否则 onErrorResume 无法捕获）");
         assertNotNull(publisher);
     }
 
     @Test
-    void rs256Token_legacyFailureMustFallBackToSasTrack() throws Exception {
+    void invalidOrUnreachableIssuerTokenFailsAsynchronously() throws Exception {
         ReactiveJwtDecoder decoder = config().lrcoreReactiveJwtDecoder();
         String token = rs256Token();
 
         Throwable failure = assertThrows(Throwable.class,
                 () -> decoder.decode(token)
                         .block(java.time.Duration.ofSeconds(10)),
-                "不可达 issuer 下两轨都应失败（最终错误来自 SAS 轨的 JWKS 获取）");
+                "不可达 issuer 下 SAS 解码必然失败（JWKS 获取连接拒绝）");
 
-        // 最终错误必须是 SAS 轨道的 JWKS 获取失败（连接拒绝/超时），
-        // 而不是旧轨包装的 JwtException —— 后者意味着回退没有发生
         String chain = failureChain(failure);
-        assertTrue(!chain.contains("旧格式令牌校验失败"),
-                "回退 SAS 轨道未执行，最终错误仍停留在旧 HS512 轨道: " + chain);
+        // 网关解码器是纯 SAS 实现，不应出现任何若依遗留 HS512 相关错误文案
+        assertTrue(!chain.contains("旧格式令牌校验失败") && !chain.contains("HS512"),
+                "仍存在若依遗留的双 Token 校验逻辑: " + chain);
     }
 
     /** 展开异常链为可读字符串 */

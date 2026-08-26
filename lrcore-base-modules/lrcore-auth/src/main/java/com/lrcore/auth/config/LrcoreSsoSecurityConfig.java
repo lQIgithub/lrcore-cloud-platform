@@ -36,8 +36,8 @@ import java.nio.charset.StandardCharsets;
  * <p>
  * 职责：
  * <ul>
- *   <li>放行存量公开端点（/api/v1/auth/** 等，保持零变更）与 SSO 登录相关端点
- *       （GET /login 登录页、/sso/** 验证码）；</li>
+ *   <li>放行 SSO 公开端点（GET /login 登录页、/sso/** 验证码）与第三方社交登录入口
+ *       （/api/v1/auth/social/**）；</li>
  *   <li>{@link LrcoreSsoLoginFilter}（POST /login）：平台安全策略认证
  *       （验证码 + IP黑名单 + 防暴破 + 锁定 + BCrypt，见 PasswordLrcoreAuthenticator），
  *       成功后回跳 SavedRequest（/oauth2/authorize），失败重定向 /login?error=...；</li>
@@ -69,10 +69,8 @@ public class LrcoreSsoSecurityConfig {
             "/sso/**",
             // 登出（浏览器 GET 回跳场景 + 表单 POST 兼容）
             "/logout",
-            // 存量公开端点（与脚手架 LEGACY_PUBLIC_PATHS 一致，实际暴露面由网关白名单控制）
-            "/api/v1/auth/**",
-            "/api/v1/jasypt/**",
-            "/api/license/**",
+            // 第三方社交登录（SSO 授权码流程外部入口，匿名可访问）
+            "/api/v1/auth/social/**",
             "/error",
             "/favicon.ico",
             "/swagger-ui/**",
