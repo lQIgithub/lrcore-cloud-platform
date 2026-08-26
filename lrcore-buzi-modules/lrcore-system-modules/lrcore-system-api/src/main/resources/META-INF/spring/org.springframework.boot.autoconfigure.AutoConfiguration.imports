@@ -1,1 +1,2 @@
 com.lrcore.system.api.factory.RemoteUserFallbackFactory
+com.lrcore.system.api.factory.RemoteSysAppFallbackFactory
