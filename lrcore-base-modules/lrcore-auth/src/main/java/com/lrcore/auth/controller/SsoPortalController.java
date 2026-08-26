@@ -5,6 +5,7 @@ import com.lrcore.system.api.RemoteSysAppApi;
 import com.lrcore.system.api.dto.PortalAppDto;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -47,9 +48,17 @@ public class SsoPortalController {
     private static final String PORTAL_TEMPLATE = loadTemplate();
 
     private final RemoteSysAppApi remoteSysAppApi;
+    /**
+     * 子系统未配置 app_url 时，门户默认进入的管理后台地址。
+     * 通过配置 lrcore.sso.portal.default-admin-url 覆盖；缺省指向当前管理后台 SPA
+     * （开发环境默认 http://localhost:3000，生产按网关/前端实际地址配置）。
+     */
+    private final String defaultAdminUrl;
 
-    public SsoPortalController(RemoteSysAppApi remoteSysAppApi) {
+    public SsoPortalController(RemoteSysAppApi remoteSysAppApi,
+                               @Value("${lrcore.sso.portal.default-admin-url:http://localhost:3000}") String defaultAdminUrl) {
         this.remoteSysAppApi = remoteSysAppApi;
+        this.defaultAdminUrl = defaultAdminUrl;
     }
 
     /**
@@ -72,6 +81,12 @@ public class SsoPortalController {
             log.warn("门户子系统清单加载失败: {}", result == null ? "返回为空" : result.getMessage());
             return ResponseEntity.ok(ApiResult.fail("门户子系统清单加载失败"));
         }
+        // 子系统未配置 app_url 时，回退到默认管理后台地址，保证门户卡片可点击进入
+        result.getData().forEach(app -> {
+            if (app.getAppUrl() == null || app.getAppUrl().isBlank()) {
+                app.setAppUrl(defaultAdminUrl);
+            }
+        });
         return ResponseEntity.ok(ApiResult.success(result.getData()));
     }
 
