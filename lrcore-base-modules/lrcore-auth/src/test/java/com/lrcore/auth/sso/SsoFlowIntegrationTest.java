@@ -327,6 +327,21 @@ class SsoFlowIntegrationTest {
         assertThat(count).as("SSO 登出后该用户的全部授权记录应被撤销").isZero();
     }
 
+    @Test
+    @Order(13)
+    @DisplayName("子门户：直接登录成功 → 302 进入子系统展示门户（不进某一系统主页）")
+    void direct_login_redirects_to_portal() {
+        // 不携带 SavedRequest（未先访问 /oauth2/authorize），纯登录页登录后应进入门户
+        cookieJar.clear();
+        String csrf = fetchCsrf();
+        String uuid = fetchCaptchaUuid();
+        ExchangeResult resp = postLogin(csrf, "admin", ADMIN_PASSWORD, uuid, TEST_STATE.captchas.get(uuid));
+        String location = locationOf(resp);
+        assertThat(location).as("直接登录成功应进入子门户，实际: " + location)
+                .contains("/sso/portal.html");
+        assertThat(location).doesNotContain("/oauth2/authorize");
+    }
+
     // ==================== 请求辅助（统一 Cookie Jar 管理） ====================
 
     /** 浏览器式 GET（Accept: text/html，携带 cookie jar 并回存响应 Cookie）。 */

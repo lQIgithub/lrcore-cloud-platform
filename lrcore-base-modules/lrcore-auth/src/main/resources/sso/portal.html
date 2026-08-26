@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>lrcore 子门户 · 选择系统</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-0: #030711;
+      --bg-1: #0a1226;
+      --ink: #eaf6ff;
+      --muted: #95a7c9;
+      --faint: #4d6187;
+      --cyan: #2fd9ff;
+      --cyan2: #00f0ff;
+      --violet: #6d6bff;
+      --mint: #37ffc3;
+      --amber: #ffb454;
+      --stroke: rgba(255,255,255,.09);
+      --card: rgba(14, 22, 46, .55);
+      --mono: "Inter", "JetBrains Mono", "SF Mono", Menlo, Consolas, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    html, body { min-height: 100%; }
+    body {
+      font-family: var(--mono);
+      color: var(--ink);
+      background:
+        radial-gradient(1100px 700px at 78% 12%, rgba(109,107,255,.16), transparent 60%),
+        radial-gradient(1000px 800px at 12% 88%, rgba(47,217,255,.11), transparent 60%),
+        linear-gradient(160deg, var(--bg-0), var(--bg-1) 55%, #070b18 100%);
+      min-height: 100vh;
+    }
+
+    /* 背景动效层 */
+    #bg-canvas { position: fixed; inset: 0; z-index: 0; display: block; pointer-events: none; will-change: transform; transform: translateZ(0); }
+    .aurora { position: fixed; inset: -30%; z-index: 0; pointer-events: none; filter: blur(90px); opacity: .4; mix-blend-mode: screen; }
+    .aurora span { position: absolute; width: 44vw; height: 44vw; border-radius: 50%; mix-blend-mode: screen; will-change: transform; }
+    .aurora .a { top: 12%; left: 6%;  background: radial-gradient(circle, #2fd9ff 0%, transparent 62%); animation: floatA 24s ease-in-out infinite; }
+    .aurora .b { top: 30%; right: 2%; background: radial-gradient(circle, #6d6bff 0%, transparent 62%); animation: floatB 28s ease-in-out infinite; }
+    .aurora .c { bottom: -6%; left: 28%; background: radial-gradient(circle, #37ffc3 0%, transparent 60%); animation: floatC 32s ease-in-out infinite; }
+    @keyframes floatA { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(50px,-40px) scale(1.12)} }
+    @keyframes floatB { 0%,100%{transform:translate(0,0) scale(1.08)} 50%{transform:translate(-60px,40px) scale(.95)} }
+    @keyframes floatC { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,50px) scale(1.1)} }
+    .mesh {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(85% 85% at 50% 40%, #000 0%, transparent 100%);
+      -webkit-mask-image: radial-gradient(85% 85% at 50% 40%, #000 0%, transparent 100%);
+    }
+
+    .wrap { position: relative; z-index: 2; max-width: 1120px; margin: 0 auto; padding: 44px 24px 60px; }
+
+    /* 顶部栏 */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 0 14px; border-bottom: 1px solid var(--stroke); margin-bottom: 34px;
+    }
+    .topbar .brand { display: flex; align-items: center; gap: 12px; }
+    .topbar .logo {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 19px; color: #04121a;
+      background: linear-gradient(140deg, var(--cyan), var(--violet));
+      box-shadow: 0 6px 22px rgba(47,217,255,.4);
+    }
+    .topbar .brand .name { font-size: 15px; font-weight: 700; letter-spacing: 1px; }
+    .topbar .brand .name small { display: block; font-weight: 400; font-size: 9.5px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+    .topbar .status { font-size: 10.5px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+    .topbar .status .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; background: var(--mint); box-shadow: 0 0 10px var(--mint); }
+
+    /* 标题 */
+    .head { margin-bottom: 30px; }
+    .head .kicker { font-size: 10.5px; letter-spacing: 4px; color: var(--cyan); opacity: .85; text-transform: uppercase; }
+    .head h1 { margin-top: 8px; font-size: 30px; font-weight: 800; letter-spacing: 1px;
+      background: linear-gradient(90deg, #fff, var(--cyan), var(--violet));
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 14px rgba(47,217,255,.25)); }
+    .head p { margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.8; }
+    .head p b { color: var(--cyan); font-weight: 600; }
+
+    /* 卡片网格 */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      position: relative;
+      display: flex; flex-direction: column; gap: 12px;
+      padding: 26px 26px 22px; border-radius: 18px;
+      background: linear-gradient(160deg, rgba(255,255,255,.05), rgba(255,255,255,.015) 45%, rgba(255,255,255,.04));
+      border: 1px solid var(--stroke);
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      text-decoration: none; color: inherit;
+      transition: transform .18s cubic-bezier(.22,1,.36,1), border-color .2s, box-shadow .2s;
+      overflow: hidden;
+    }
+    .card::before {
+      content: ""; position: absolute; top: 0; left: 12%; right: 12%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan) 40%, var(--mint) 60%, transparent);
+      opacity: 0; transition: opacity .25s; filter: blur(.3px);
+    }
+    .card:hover { transform: translateY(-4px); border-color: rgba(47,217,255,.5); box-shadow: 0 20px 44px rgba(0,0,0,.45); }
+    .card:hover::before { opacity: 1; }
+    .card .icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; color: #04121a;
+      background: linear-gradient(140deg, var(--cyan), var(--violet));
+      box-shadow: 0 8px 24px rgba(47,217,255,.35);
+      flex-shrink: 0;
+    }
+    .card h3 { font-size: 17px; font-weight: 700; letter-spacing: .5px; }
+    .card .desc { font-size: 12px; color: var(--muted); line-height: 1.8; flex: 1; }
+    .card .enter {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; letter-spacing: 2px; color: var(--cyan);
+      margin-top: 6px;
+    }
+    .card .enter .arrow { transition: transform .2s; }
+    .card:hover .enter .arrow { transform: translateX(5px); }
+    .card .tag {
+      position: absolute; top: 22px; right: 22px;
+      font-size: 9.5px; letter-spacing: 1px; color: var(--faint);
+      border: 1px solid var(--stroke); padding: 2px 8px; border-radius: 20px;
+      text-transform: uppercase;
+    }
+
+    /* 状态区 */
+    .state { padding: 60px 0; text-align: center; color: var(--faint); font-size: 13px; }
+    .state .spinner {
+      width: 32px; height: 32px; margin: 0 auto 16px;
+      border: 3px solid rgba(255,255,255,.1); border-top-color: var(--cyan); border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .foot { margin-top: 40px; text-align: center; font-size: 10.5px; color: var(--faint); letter-spacing: 1px; }
+    .foot .tag { color: var(--cyan); background: rgba(47,217,255,.08); border: 1px solid rgba(47,217,255,.25); padding: 1px 7px; border-radius: 4px; }
+
+    @media (max-width: 720px) {
+      .wrap { padding: 26px 16px 40px; }
+      .grid { grid-template-columns: 1fr; }
+      .head h1 { font-size: 24px; }
+      .topbar .status { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+      #bg-canvas, .aurora span { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <div class="aurora"><span class="a"></span><span class="b"></span><span class="c"></span></div>
+  <div class="mesh"></div>
+
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">L</div>
+        <div class="name">lrcore 云平台<small>Unified Portal</small></div>
+      </div>
+      <div class="status"><span class="dot"></span>SSO 会话已建立 · 免登进入</div>
+    </div>
+
+    <div class="head">
+      <div class="kicker">Application Hub</div>
+      <h1>选择要访问的业务系统</h1>
+      <p>统一身份已就绪，点击任一系统即可 <b>免登录</b> 直接进入对应管理后台。一次登录，全平台通行。</p>
+    </div>
+
+    <div id="appGrid" class="grid"></div>
+    <div id="empty" class="state" style="display:none">暂无可用业务系统</div>
+
+    <div class="foot">
+      已接入统一认证（<span class="tag">SSO</span>） · 各系统独立鉴权，由唯一会话保障免登
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      /* 背景粒子网络（复用登录页手法，轻量） */
+      var canvas = document.getElementById("bg-canvas");
+      var ctx = canvas && canvas.getContext("2d");
+      var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (ctx && !reduceMotion) {
+        var dpr = Math.min(window.devicePixelRatio || 1, 2), w, h, dots = [], running = true;
+        function resize() {
+          w = window.innerWidth; h = window.innerHeight;
+          canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+          canvas.style.width = w + "px"; canvas.style.height = h + "px";
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          var target = Math.min(90, Math.max(40, Math.round(w * h / 20000)));
+          if (dots.length !== target) {
+            dots = [];
+            for (var i = 0; i < target; i++)
+              dots.push({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random()-.5)*.4, vy: (Math.random()-.5)*.4, r: Math.random()*1.5+.5 });
+          }
+        }
+        function step() {
+          if (!running) return;
+          ctx.clearRect(0, 0, w, h);
+          var M = 140, M2 = M * M, T = Math.PI * 2;
+          for (var i = 0; i < dots.length; i++) {
+            var d = dots[i]; d.x += d.vx; d.y += d.vy;
+            if (d.x < 0 || d.x > w) d.vx *= -1;
+            if (d.y < 0 || d.y > h) d.vy *= -1;
+            for (var j = i + 1; j < dots.length; j++) {
+              var e = dots[j], dx = d.x - e.x, dy = d.y - e.y, ds = dx*dx + dy*dy;
+              if (ds < M2) {
+                ctx.strokeStyle = "rgba(47,217,255," + ((1 - Math.sqrt(ds)/M) * 0.32) + ")";
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(e.x, e.y); ctx.stroke();
+              }
+            }
+            ctx.fillStyle = "rgba(47,217,255,.9)";
+            ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, T); ctx.fill();
+          }
+          requestAnimationFrame(step);
+        }
+        resize();
+        window.addEventListener("resize", resize);
+        window.addEventListener("visibilitychange", function () {
+          running = !document.hidden;
+          if (running) requestAnimationFrame(step);
+        });
+        requestAnimationFrame(step);
+      }
+
+      /* 加载子系统清单 */
+      var grid = document.getElementById("appGrid");
+      var empty = document.getElementById("empty");
+      var loadingState = document.createElement("div");
+      loadingState.className = "state";
+      loadingState.innerHTML = '<div class="spinner"></div>正在同步业务系统…';
+      grid.parentNode.insertBefore(loadingState, grid);
+
+      function escapeHtml(v) {
+        return String(v == null ? "" : v)
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      fetch("./portal/apps", { credentials: "same-origin" })
+        .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+        .then(function (body) {
+          loadingState.remove();
+          var data = body && body.data ? body.data : [];
+          if (!data || data.length === 0) { empty.style.display = "block"; return; }
+          data.forEach(function (app) {
+            var url = app.appUrl || "#";
+            var card = document.createElement("a");
+            card.className = "card";
+            card.href = url;
+            card.setAttribute("target", "_blank");
+            card.setAttribute("rel", "noopener");
+            var code = escapeHtml(app.appCode || "APP").toUpperCase();
+            var name = escapeHtml(app.appName || "未命名系统");
+            var desc = escapeHtml(app.appDesc || "进入该系统管理后台");
+            var letter = name.trim().charAt(0) || "L";
+            card.innerHTML =
+              '<span class="tag">' + code + '</span>' +
+              '<div class="icon">' + escapeHtml(app.appIcon ? app.appIcon : letter) + '</div>' +
+              '<h3>' + name + '</h3>' +
+              '<div class="desc">' + desc + '</div>' +
+              '<span class="enter">进入系统 <span class="arrow">→</span></span>';
+            grid.appendChild(card);
+          });
+        })
+        .catch(function () {
+          loadingState.remove();
+          empty.style.display = "block";
+          empty.textContent = "业务系统清单加载失败，请稍后重试";
+        });
+    })();
+  </script>
+</body>
+</html>
