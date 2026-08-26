@@ -17,10 +17,7 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
-import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
@@ -116,24 +113,12 @@ public class LrcoreSsoSecurityConfig {
         loginFilter.setAuthenticationManager(authenticationManager);
         // 登录失败：重定向登录页并携带具体原因（验证码错误/密码错误/账户锁定等）
         loginFilter.setAuthenticationFailureHandler(this::sendErrorToLoginPage);
-        // [子门户需求] 登录成功默认进入"子系统展示门户"：SSO 登录成功后不直接进入
-        // 某个系统主页，而是先展示可进入的子系统清单，点击后再进入对应管理后台。
-        // 特例：当发起登录的 SavedRequest 为授权码协议入口（/oauth2/authorize）时，
-        // 仍保留"回跳原系统"的直连能力（用户从某子系统直达登录的场景）。
-        loginFilter.setAuthenticationSuccessHandler((request, response, authentication) -> {
-            HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
-            SavedRequest savedRequest = requestCache.getRequest(request, response);
-            if (isAuthorizeSavedRequest(savedRequest)) {
-                // 续接被登录中断的授权码流程：回跳原 /oauth2/authorize（handler 内会自动清除保存的请求）
-                SavedRequestAwareAuthenticationSuccessHandler continuation =
-                        new SavedRequestAwareAuthenticationSuccessHandler();
-                continuation.setRequestCache(requestCache);
-                continuation.onAuthenticationSuccess(request, response, authentication);
-                return;
-            }
-            // 其余场景（含从登录页直接登录）统一进入子门户
-            response.sendRedirect(request.getContextPath() + PORTAL_PATH);
-        });
+        // [子门户需求] SSO 登录成功后一律进入"子系统展示门户"：不直接进入某一系统主页，
+        // 而是先展示可进入的子系统清单，点击后再进入对应管理后台。
+        // （从某子系统直达登录时，SavedRequest(/oauth2/authorize) 不再强行续接，
+        //   登录后仍回到门户统一选择，保证"登录成功→门户"这一核心体验一致。）
+        loginFilter.setAuthenticationSuccessHandler((request, response, authentication) ->
+                response.sendRedirect(request.getContextPath() + PORTAL_PATH));
 
         // @formatter:off
         http
@@ -195,18 +180,5 @@ public class LrcoreSsoSecurityConfig {
     private static boolean isBrowserRequest(HttpServletRequest request) {
         String accept = request.getHeader("Accept");
         return accept != null && accept.contains(MediaType.TEXT_HTML_VALUE);
-    }
-
-    /**
-     * 判断保存在会话中的原始请求是否为"授权码协议入口"（跳登录前正被 /oauth2/authorize 拦截）。
-     * 若是，登录成功后回跳续接该子系统授权流程（SSO 直连语义）；
-     * 否则统一进入子门户展示页。
-     */
-    private static boolean isAuthorizeSavedRequest(SavedRequest savedRequest) {
-        if (savedRequest == null) {
-            return false;
-        }
-        String redirectUrl = savedRequest.getRedirectUrl();
-        return redirectUrl != null && redirectUrl.contains("/oauth2/authorize");
     }
 }

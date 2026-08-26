@@ -210,18 +210,18 @@ class SsoFlowIntegrationTest {
 
     @Test
     @Order(6)
-    @DisplayName("登录：正确凭据 → 302 回跳原 /oauth2/authorize（SavedRequest 续接）")
-    void login_success_resumes_authorize() {
-        // 携带当前会话访问 /oauth2/authorize：未认证 → 302 /login 并保存 SavedRequest
+    @DisplayName("子门户：正确登录成功 → 302 进入子系统展示门户（不停留在原 authorize 请求）")
+    void login_success_redirects_to_portal() {
+        // 模拟从某子系统的 /oauth2/authorize 被中断到登录页（SavedRequest 已存在）
         browserGet(authorizeUri("state-login"));
 
         String csrf = fetchCsrf();
         String uuid = fetchCaptchaUuid();
         ExchangeResult resp = postLogin(csrf, "admin", ADMIN_PASSWORD, uuid, TEST_STATE.captchas.get(uuid));
         String location = locationOf(resp);
-        assertThat(location).contains("/oauth2/authorize");
-        assertThat(location).contains("state=state-login");
-        assertThat(location).contains("code_challenge=" + codeChallenge);
+        assertThat(location).as("登录成功应进入子门户（而非回跳 authorize），实际: " + location)
+                .contains("/sso/portal.html");
+        assertThat(location).doesNotContain("/oauth2/authorize");
     }
 
     @Test
@@ -325,21 +325,6 @@ class SsoFlowIntegrationTest {
                 "SELECT COUNT(*) FROM oauth2_authorization WHERE principal_name = ?",
                 Integer.class, "admin");
         assertThat(count).as("SSO 登出后该用户的全部授权记录应被撤销").isZero();
-    }
-
-    @Test
-    @Order(13)
-    @DisplayName("子门户：直接登录成功 → 302 进入子系统展示门户（不进某一系统主页）")
-    void direct_login_redirects_to_portal() {
-        // 不携带 SavedRequest（未先访问 /oauth2/authorize），纯登录页登录后应进入门户
-        cookieJar.clear();
-        String csrf = fetchCsrf();
-        String uuid = fetchCaptchaUuid();
-        ExchangeResult resp = postLogin(csrf, "admin", ADMIN_PASSWORD, uuid, TEST_STATE.captchas.get(uuid));
-        String location = locationOf(resp);
-        assertThat(location).as("直接登录成功应进入子门户，实际: " + location)
-                .contains("/sso/portal.html");
-        assertThat(location).doesNotContain("/oauth2/authorize");
     }
 
     // ==================== 请求辅助（统一 Cookie Jar 管理） ====================
