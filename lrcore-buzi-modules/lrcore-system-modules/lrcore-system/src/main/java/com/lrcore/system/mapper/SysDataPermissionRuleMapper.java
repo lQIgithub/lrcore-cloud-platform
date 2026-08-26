@@ -4,7 +4,6 @@ import com.lrcore.system.domain.SysDataPermissionRuleEntity;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.query.QueryWrapper;
 import org.apache.ibatis.annotations.Mapper;
-import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
@@ -22,16 +21,6 @@ import java.util.List;
  */
 @Mapper
 public interface SysDataPermissionRuleMapper extends BaseMapper<SysDataPermissionRuleEntity> {
-
-    /**
-     * 根据查询条件查询规则列表
-     *
-     * @param queryWrapper 查询条件
-     * @return 规则列表
-     */
-    default List<SysDataPermissionRuleEntity> selectListByQuery(@NonNull QueryWrapper queryWrapper) {
-        return selectListByQueryAs(queryWrapper, SysDataPermissionRuleEntity.class);
-    }
 
     /**
      * 根据租户ID查询有效规则
