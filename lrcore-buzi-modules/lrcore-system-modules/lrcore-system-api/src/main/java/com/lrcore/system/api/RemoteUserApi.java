@@ -28,6 +28,6 @@ public interface RemoteUserApi {
      * @param username  用户名
      * @return 结果
      */
-    @GetMapping("/user/info/{username}/{loginType}")
+    @GetMapping("/user/info/{username}")
     ApiResult<LoginUserDto> getUserInfo(@PathVariable String username);
 }
