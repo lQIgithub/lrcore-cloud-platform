@@ -26,9 +26,8 @@ public interface RemoteUserApi {
      * 通过用户名查询用户信息
      *
      * @param username  用户名
-     * @param loginType 登录类型  web,email,phone
      * @return 结果
      */
     @GetMapping("/user/info/{username}/{loginType}")
-    ApiResult<LoginUserDto> getUserInfo(@PathVariable String username, @PathVariable String loginType);
+    ApiResult<LoginUserDto> getUserInfo(@PathVariable String username);
 }

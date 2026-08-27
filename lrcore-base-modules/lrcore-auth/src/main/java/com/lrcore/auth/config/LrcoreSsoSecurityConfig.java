@@ -42,7 +42,7 @@ import java.nio.charset.StandardCharsets;
  *       （验证码 + IP黑名单 + 防暴破 + 锁定 + BCrypt，见 PasswordLrcoreAuthenticator），
  *       成功后回跳 SavedRequest（/oauth2/authorize），失败重定向 /login?error=...；</li>
  *   <li>会话：空闲 30 分钟 / 绝对 2 小时 —— 该会话即 SSO 单点登录的载体
- *       （会话有效期内所有 RP 免登）；</li>
+ *       （会话有效期内所有 RP(依赖方) 免登）；</li>
  *   <li>登出（GET/POST /logout）：销毁 AS 会话 → 触发 LogoutSuccessEvent →
  *       starter 的 LrcoreBackChannelLogoutPublisher 撤销该用户全部授权
  *       并向已注册 RP 推送 back-channel logout_token（SSO 单点登出），

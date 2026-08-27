@@ -23,24 +23,8 @@ public class SysUserFeignClient implements RemoteUserApi {
     private final ISysUserService userService;
 
     @Override
-    public ApiResult<LoginUserDto> getUserInfo(String username, String loginType) {
+    public ApiResult<LoginUserDto> getUserInfo(String username) {
         LoginUserDto user = userService.getByUserName(username);
-//        switch (loginType) {
-//            case "web":
-//                user = userService.getByUserName(username);
-//                break;
-//            case "email":
-//                user = userService.getByEmail(username);
-//                break;
-//            case "phone":
-//                user = userService.getByPhoneNumber(username);
-//                break;
-//            default:
-//                return ApiResult.fail("无效的登录类型");
-//        }
-//        if (user == null) {
-//            return ApiResult.fail("用户不存在");
-//        }
         // 这里可以添加角色和权限信息
         return ApiResult.success(user);
     }

@@ -432,7 +432,7 @@ class SocialLoginFlowQqTest {
         @Bean
         LrcoreUserSource lrcoreUserSource(RemoteUserApi remoteUserApi) {
             return username -> {
-                ApiResult<LoginUserDto> result = remoteUserApi.getUserInfo(username, "web");
+                ApiResult<LoginUserDto> result = remoteUserApi.getUserInfo(username);
                 if (result == null || !result.isSuccess() || result.getData() == null) {
                     return null;
                 }

@@ -59,7 +59,7 @@ public class LrcoreSsoHostConfiguration {
         return username -> {
             ApiResult<LoginUserDto> result;
             try {
-                result = remoteUserApi.getUserInfo(username, "web");
+                result = remoteUserApi.getUserInfo(username);
             } catch (Exception ex) {
                 // 远程调用异常向上抛（由 LrcoreUserDetailsService 包装为内部错误，不泄露细节）
                 throw ex;
@@ -85,6 +85,7 @@ public class LrcoreSsoHostConfiguration {
      */
     @Bean
     public UserDetailsService lrcoreUserDetailsService(LrcoreUserSource lrcoreUserSource) {
+        // 具体实现下放到核心包中内置
         return new LrcoreUserDetailsService(lrcoreUserSource);
     }
 

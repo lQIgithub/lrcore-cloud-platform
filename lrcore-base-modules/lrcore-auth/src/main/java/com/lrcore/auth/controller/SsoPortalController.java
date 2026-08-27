@@ -83,6 +83,7 @@ public class SsoPortalController {
         }
         // 子系统未配置 app_url 时，回退到默认管理后台地址，保证门户卡片可点击进入
         result.getData().forEach(app -> {
+            log.info("数据库查询子系统门户信息：{}", app);
             if (app.getAppUrl() == null || app.getAppUrl().isBlank()) {
                 app.setAppUrl(defaultAdminUrl);
             }

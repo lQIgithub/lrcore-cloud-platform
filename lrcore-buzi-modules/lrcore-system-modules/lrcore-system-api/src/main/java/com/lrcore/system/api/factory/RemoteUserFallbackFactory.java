@@ -22,7 +22,7 @@ public class RemoteUserFallbackFactory implements FallbackFactory<RemoteUserApi>
         log.error("用户服务调用失败:{}", throwable.getMessage());
         return new RemoteUserApi() {
             @Override
-            public ApiResult<LoginUserDto> getUserInfo(String username, String password) {
+            public ApiResult<LoginUserDto> getUserInfo(String username) {
                 return ApiResult.fail("获取用户失败:" + throwable.getMessage());
             }
         };

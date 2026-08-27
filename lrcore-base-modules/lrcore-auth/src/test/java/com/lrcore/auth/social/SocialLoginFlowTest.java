@@ -406,7 +406,7 @@ class SocialLoginFlowTest {
         /** Feign 桩：仅认证中心用到的 admin 用户存在，密码为 ADMIN_BCRYPT。 */
         @Bean
         RemoteUserApi remoteUserApi() {
-            return (username, loginType) -> {
+            return (username) -> {
                 if ("admin".equals(username)) {
                     LoginUserDto dto = new LoginUserDto();
                     dto.setUserId(ADMIN_USER_ID);
@@ -434,7 +434,7 @@ class SocialLoginFlowTest {
         @Bean
         LrcoreUserSource lrcoreUserSource(RemoteUserApi remoteUserApi) {
             return username -> {
-                ApiResult<LoginUserDto> result = remoteUserApi.getUserInfo(username, "web");
+                ApiResult<LoginUserDto> result = remoteUserApi.getUserInfo(username);
                 if (result == null || !result.isSuccess() || result.getData() == null) {
                     return null;
                 }
