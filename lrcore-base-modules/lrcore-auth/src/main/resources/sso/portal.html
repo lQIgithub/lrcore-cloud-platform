@@ -247,6 +247,19 @@
           .replace(/"/g, "&quot;");
       }
 
+      /**
+       * 校验子系统访问地址：仅放行 http/https（或站内相对路径）。
+       * 防止 sys_app 中被污染/伪造的 app_url（如 "javascript:..."）被直接作为
+       * <a href> 触发脚本执行。非法地址一律回退为 "#"（点击无跳转不会进入伪系统）。
+       */
+      function safeAppUrl(url) {
+        if (url == null || typeof url !== "string") return "#";
+        var trimmed = url.trim();
+        if (!trimmed) return "#";
+        if (/^(https?:)?\/\//i.test(trimmed) || /^\/[^/]/.test(trimmed)) return trimmed;
+        return "#";
+      }
+
       fetch("./portal/apps", { credentials: "same-origin" })
         .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
         .then(function (body) {
@@ -254,11 +267,13 @@
           var data = body && body.data ? body.data : [];
           if (!data || data.length === 0) { empty.style.display = "block"; return; }
           data.forEach(function (app) {
-            var url = app.appUrl || "#";
+            var url = safeAppUrl(app.appUrl);
             var card = document.createElement("a");
             card.className = "card";
             card.href = url;
-            card.setAttribute("target", "_blank");
+            if (/^(https?:)?\/\//i.test(url)) {
+              card.setAttribute("target", "_blank");
+            }
             card.setAttribute("rel", "noopener");
             var code = escapeHtml(app.appCode || "APP").toUpperCase();
             var name = escapeHtml(app.appName || "未命名系统");
