@@ -76,6 +76,9 @@ public class LrcoreSsoSecurityConfig {
             "/logout",
             // 第三方社交登录（SSO 授权码流程外部入口，匿名可访问）
             "/api/v1/auth/social/**",
+            // OAuth2 客户端管理（平台内部专用：宿主安全链放行，
+            // 真正鉴权由 @InnerAuth 校验 from-source: inner 请求头承担）
+            "/api/v1/client/admin/**",
             "/error",
             "/favicon.ico",
             "/swagger-ui/**",
