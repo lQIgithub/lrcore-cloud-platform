@@ -404,7 +404,7 @@ class SocialLoginFlowQqTest {
         /** Feign 桩：仅认证中心用到的 admin 用户存在，密码为 ADMIN_BCRYPT。 */
         @Bean
         RemoteUserApi remoteUserApi() {
-            return (username, loginType) -> {
+            return (username) -> {
                 if ("admin".equals(username)) {
                     LoginUserDto dto = new LoginUserDto();
                     dto.setUserId(ADMIN_USER_ID);

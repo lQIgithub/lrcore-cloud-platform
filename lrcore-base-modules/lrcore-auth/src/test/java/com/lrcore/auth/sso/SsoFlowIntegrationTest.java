@@ -549,7 +549,7 @@ class SsoFlowIntegrationTest {
         /** Feign 桩：仅 admin 用户存在（BCrypt 密码），租户/企业/部门为 1。 */
         @Bean
         RemoteUserApi remoteUserApi() {
-            return (username, loginType) -> {
+            return (username) -> {
                 if ("admin".equals(username)) {
                     LoginUserDto dto = new LoginUserDto();
                     dto.setUserId(ADMIN_USER_ID);
