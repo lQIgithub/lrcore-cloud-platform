@@ -1,6 +1,7 @@
 package com.lrcore.system.controller.workflow;
 
 import com.lrcore.common.core.utils.FunStrUtils;
+import com.lrcore.common.core.utils.jackson.FunJsonUtils;
 import com.lrcore.common.core.web.controller.BaseController;
 import com.lrcore.common.core.web.domain.ApiResult;
 import com.lrcore.common.flowable.enums.ProcessDefinitionStatus;
@@ -8,6 +9,8 @@ import com.lrcore.common.flowable.model.definition.FlowGraphData;
 import com.lrcore.common.flowable.model.definition.ProcessDefinitionVo;
 import com.lrcore.common.flowable.model.definition.QueryDefinitionVi;
 import com.lrcore.common.flowable.service.FlowConversionService;
+import com.lrcore.system.domain.SysProcessDefinitionBaseInfoEntity;
+import com.lrcore.system.service.ISysProcessDefinitionBaseInfoService;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +43,7 @@ public class SysWorkFlowDefinitionController extends BaseController {
 
     private final FlowConversionService flowConversionService;
     private final RepositoryService repositoryService;
+    private final ISysProcessDefinitionBaseInfoService sysProcessDefinitionBaseInfoService;
 
     @GetMapping("/list")
     @Schema(description = "获取流程定义列表")
@@ -90,7 +94,48 @@ public class SysWorkFlowDefinitionController extends BaseController {
     @GetMapping("/getInfo/{id}")
     @Schema(description = "获取流程定义详情")
     public ApiResult<ProcessDefinitionVo> getInfo(@PathVariable("id") Serializable id) {
-        return ApiResult.success();
+
+
+        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
+                .processDefinitionId(String.valueOf(id))
+                .singleResult();
+        if (processDefinition == null) {
+            log.warn("流程定义不存在, id:{}", id);
+            return ApiResult.fail("流程定义不存在: " + id);
+        }
+
+        ProcessDefinitionVo vo = convertToVo(processDefinition);
+        // 从部署资源读取 BPMN XML，前端据此还原设计器画布
+        vo.setBpmnXml(loadBpmnXml(processDefinition));
+
+        // 部署时间在 Deployment 上（本版本 ProcessDefinition 无该字段）
+        Deployment deployment = repositoryService.createDeploymentQuery()
+                .deploymentId(processDefinition.getDeploymentId())
+                .singleResult();
+        if (deployment != null && deployment.getDeploymentTime() != null) {
+            java.time.LocalDateTime time = java.time.LocalDateTime.ofInstant(
+                    deployment.getDeploymentTime().toInstant(), java.time.ZoneId.systemDefault());
+            vo.setCreateTime(time);
+            vo.setUpdateTime(time);
+        }
+        return ApiResult.success(vo);
+    }
+
+    /**
+     * 从部署资源中读取流程定义的 BPMN XML，读取失败时返回 null（不阻断基本信息返回）
+     */
+    private String loadBpmnXml(ProcessDefinition processDefinition) {
+        try (java.io.InputStream in = repositoryService.getResourceAsStream(
+                processDefinition.getId(), processDefinition.getResourceName())) {
+            if (in == null) {
+                return null;
+            }
+            return new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            log.error("读取流程定义BPMN资源失败, id:{}, resource:{}",
+                    processDefinition.getId(), processDefinition.getResourceName(), e);
+            return null;
+        }
     }
 
     @PostMapping("/save")
@@ -98,6 +143,8 @@ public class SysWorkFlowDefinitionController extends BaseController {
     public ApiResult<ProcessDefinitionVo> processDefinitionsSave(@RequestBody ProcessDefinitionVo processDefinitionVo) {
         log.info("创建流程定义");
         try {
+
+
             // 这里使用链式调用功能，做数据校验
             FlowGraphData graphData = processDefinitionVo.getGraphData();
             boolean isValid = flowConversionService.validateFlowGraphData(graphData);
@@ -130,6 +177,19 @@ public class SysWorkFlowDefinitionController extends BaseController {
             processDefinitionVo.setCreateTime(java.time.LocalDateTime.now());
             processDefinitionVo.setUpdateTime(java.time.LocalDateTime.now());
             processDefinitionVo.setStatus(ProcessDefinitionStatus.draft);
+            SysProcessDefinitionBaseInfoEntity processDefinitionBaseInfoEntity = SysProcessDefinitionBaseInfoEntity.builder()
+                    .actReProcdefId(deployment.getId())
+                    .key(deployment.getKey())
+                    .name(deployment.getName())
+                    .category(deployment.getCategory())
+                    .description(processDefinitionVo.getDescription())
+                    .version(deployment.getEngineVersion())
+                    .graphData(FunJsonUtils.getJsonStringFromJavaBean(processDefinitionVo.getGraphData()))
+                    .bpmnXml(bpmnXml)
+                    .status(ProcessDefinitionStatus.deployed)
+                    .buildIn(0)
+                    .build();
+            sysProcessDefinitionBaseInfoService.save(processDefinitionBaseInfoEntity);
 
             return ApiResult.success(processDefinitionVo);
         } catch (Exception e) {
@@ -163,9 +223,32 @@ public class SysWorkFlowDefinitionController extends BaseController {
     }
 
     @PostMapping("/deploy")
-    @Schema(description = "部署流程（可选传入前端生成的BPMN XML，未传则由后端根据已保存的图形数据生成）")
+    @Schema(description = "重新部署流程（以前端生成的BPMN XML按同一key部署为新版本）")
     public ApiResult<Boolean> deploy(@RequestBody ProcessDefinitionVo processDefinitionVo) {
-        return ApiResult.success();
+        if (processDefinitionVo == null || FunStrUtils.isEmpty(processDefinitionVo.getId())) {
+            return ApiResult.fail("流程定义ID不能为空");
+        }
+        if (FunStrUtils.isEmpty(processDefinitionVo.getBpmnXml())) {
+            return ApiResult.fail("BPMN XML不能为空");
+        }
+        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
+                .processDefinitionId(processDefinitionVo.getId())
+                .singleResult();
+        if (processDefinition == null) {
+            return ApiResult.fail("流程定义不存在: " + processDefinitionVo.getId());
+        }
+
+        Deployment deployment = repositoryService.createDeployment()
+                .key(processDefinition.getKey())
+                .name(processDefinition.getName())
+                .category(processDefinition.getCategory())
+                .addInputStream(processDefinition.getKey() + ".bpmn20.xml",
+                        new java.io.ByteArrayInputStream(
+                                processDefinitionVo.getBpmnXml().getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                .deploy();
+
+        log.info("流程重新部署成功, deploymentId:{}, key:{}", deployment.getId(), deployment.getKey());
+        return ApiResult.success(true);
     }
 
     @GetMapping("/versions")

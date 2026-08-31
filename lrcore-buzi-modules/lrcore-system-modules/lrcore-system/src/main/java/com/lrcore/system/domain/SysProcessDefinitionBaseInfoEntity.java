@@ -2,6 +2,7 @@ package com.lrcore.system.domain;
 
 import com.lrcore.common.core.annotation.Excel;
 import com.lrcore.common.core.web.domain.BaseEntity;
+import com.lrcore.common.flowable.enums.ProcessDefinitionStatus;
 import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Table;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -85,7 +86,7 @@ public class SysProcessDefinitionBaseInfoEntity extends BaseEntity {
     @Schema(description = "状态：draft草稿、deleted已删除、deployed已部署、archived已归档")
     @Size(max = 32, message = "状态长度不能超过32个字符")
     @Excel(name = "流程状态", readConverterExp = "draft=草稿,deleted=已删除,deployed=已部署,archived=已归档")
-    private String status;
+    private ProcessDefinitionStatus status;
 
     @Schema(description = "是否内置(0-否 1-是)")
     @Column("build_in")
