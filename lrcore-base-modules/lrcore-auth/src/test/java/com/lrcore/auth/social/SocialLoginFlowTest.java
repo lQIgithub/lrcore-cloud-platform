@@ -1,8 +1,5 @@
 package com.lrcore.auth.social;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lrcore.auth.controller.SocialAuthController;
 import com.lrcore.auth.handler.LrcoreAuthExceptionHandler;
 import com.lrcore.auth.service.SasAccessTokenIssuer;
@@ -16,6 +13,7 @@ import com.lrcore.common.auth.token.LrcoreTokenCustomizer;
 import com.lrcore.common.auth.user.LrcoreUser;
 import com.lrcore.common.auth.user.LrcoreUserDetailsService;
 import com.lrcore.common.auth.user.LrcoreUserSource;
+import com.lrcore.common.core.config.JacksonConfig;
 import com.lrcore.common.core.web.domain.ApiResult;
 import com.lrcore.common.core.web.domain.login.LoginUserDto;
 import com.lrcore.common.redis.service.RedisService;
@@ -61,6 +59,11 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -108,8 +111,8 @@ class SocialLoginFlowTest {
     static final String ADMIN_BCRYPT = new BCryptPasswordEncoder().encode(ADMIN_PASSWORD);
     static final long ADMIN_USER_ID = 7264590000000000071L;
 
-    /** 与线上 MVC 相同的 Jackson 2 + JavaTime 模块（ApiResult.serviceDateTime 反序列化需要）。 */
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
+    /** 与线上 MVC 相同的 Jackson 3 JsonMapper（ApiResult.serviceDateTime 反序列化需要）。 */
+    private static final JsonMapper OBJECT_MAPPER = JacksonConfig.buildDefaultJsonMapper();
 
     private static final TypeReference<ApiResult<JsonNode>> TR_DATA = new TypeReference<>() {
     };
@@ -246,7 +249,9 @@ class SocialLoginFlowTest {
         assertThat(result.getCode()).isEqualTo("200");
         JsonNode data = result.getData();
         assertThat(data.get("bound").asBoolean()).isFalse();
-        assertThat(data.get("token").isNull()).isTrue();
+        // NON_NULL 契约：null 字段不输出——token 缺失或为 null 均表示"未签发令牌"
+        JsonNode token = data.get("token");
+        assertThat(token == null || token.isNull()).isTrue();
         assertThat(data.get("pendingToken").asText()).isNotBlank();
         assertThat(data.get("openId").asText()).isEqualTo("openid-first-time");
         assertThat(data.get("nickname").asText()).isEqualTo("微信用户-openid-first-time");
@@ -340,11 +345,11 @@ class SocialLoginFlowTest {
         return parse(body);
     }
 
-    /** 按线上 Jackson 2 契约解析响应体（与前端 axios 收到的一致）。 */
+    /** 按线上 Jackson 3 契约解析响应体（与前端 axios 收到的一致）。 */
     private static ApiResult<JsonNode> parse(String body) {
         try {
             return OBJECT_MAPPER.readValue(body, TR_DATA);
-        } catch (IOException ex) {
+        } catch (JacksonException ex) {
             throw new IllegalStateException("响应体解析失败: " + body, ex);
         }
     }

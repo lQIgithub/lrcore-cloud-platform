@@ -1,11 +1,10 @@
 package com.lrcore.auth.sso;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lrcore.auth.config.LrcoreSsoHostConfiguration;
 import com.lrcore.auth.config.LrcoreSsoSecurityConfig;
 import com.lrcore.auth.controller.SsoCaptchaController;
 import com.lrcore.auth.controller.SsoLoginController;
+import com.lrcore.common.core.config.JacksonConfig;
 import com.lrcore.common.core.web.domain.ApiResult;
 import com.lrcore.common.core.web.domain.login.LoginUserDto;
 import com.lrcore.common.redis.service.RedisService;
@@ -52,6 +51,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -116,7 +118,8 @@ class SsoFlowIntegrationTest {
     static final String ADMIN_BCRYPT = new BCryptPasswordEncoder().encode(ADMIN_PASSWORD);
     static final long ADMIN_USER_ID = 7264590000000000071L;
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    /** 与线上 MVC 相同的 Jackson 3 JsonMapper（ApiResult.serviceDateTime 反序列化需要）。 */
+    private static final JsonMapper OBJECT_MAPPER = JacksonConfig.buildDefaultJsonMapper();
 
     /** PKCE 参数（整个测试类共用一组 verifier/challenge）。 */
     private final String codeVerifier = randomPkceVerifier();
