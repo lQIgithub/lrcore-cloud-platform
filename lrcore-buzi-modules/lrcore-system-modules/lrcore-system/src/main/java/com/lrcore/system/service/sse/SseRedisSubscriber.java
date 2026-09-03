@@ -1,9 +1,9 @@
 package com.lrcore.system.service.sse;
 
+import com.lrcore.common.core.utils.jackson.FunJsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * <p>类模块说明</p>
@@ -20,12 +20,10 @@ import tools.jackson.databind.ObjectMapper;
 public class SseRedisSubscriber implements MessageListener {
 
     private final SseEmitterRegistry sseEmitterRegistry;
-    private final ObjectMapper objectMapper;
     private final String localInstanceId;
 
-    public SseRedisSubscriber(SseEmitterRegistry sseEmitterRegistry, ObjectMapper objectMapper, String localInstanceId) {
+    public SseRedisSubscriber(SseEmitterRegistry sseEmitterRegistry, String localInstanceId) {
         this.sseEmitterRegistry = sseEmitterRegistry;
-        this.objectMapper = objectMapper;
         this.localInstanceId = localInstanceId;
     }
 
@@ -33,7 +31,7 @@ public class SseRedisSubscriber implements MessageListener {
     public void onMessage(Message message, byte[] pattern) {
         SseMessage sseMessage;
         try {
-            sseMessage = objectMapper.readValue(message.getBody(), SseMessage.class);
+            sseMessage = FunJsonUtils.getJavaBeanFromJsonStr(new String(message.getBody()), SseMessage.class);
         } catch (Exception e) {
             log.warn("SSE 广播消息解析失败，已忽略：{}", e.getMessage());
             return;

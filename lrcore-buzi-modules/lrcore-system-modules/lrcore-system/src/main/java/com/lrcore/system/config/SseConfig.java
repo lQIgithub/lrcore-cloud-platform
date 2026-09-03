@@ -35,8 +35,8 @@ public class SseConfig {
 
     /** SSE 跨实例广播订阅器（由 RedisSsePublisher 的实例标识做回环抑制） */
     @Bean
-    public SseRedisSubscriber sseRedisSubscriber(ObjectMapper objectMapper, RedisSsePublisher redisSsePublisher) {
-        return new SseRedisSubscriber(sseEmitterRegistry, objectMapper, redisSsePublisher.getInstanceId());
+    public SseRedisSubscriber sseRedisSubscriber(RedisSsePublisher redisSsePublisher) {
+        return new SseRedisSubscriber(sseEmitterRegistry, redisSsePublisher.getInstanceId());
     }
 
     /** SSE 跨实例广播订阅容器（订阅 Redis 通道 lrcore:sse:broadcast） */
