@@ -76,6 +76,11 @@ public class LrcoreSsoSecurityConfig {
             "/logout",
             // 第三方社交登录（SSO 授权码流程外部入口，匿名可访问）
             "/api/v1/auth/social/**",
+            // 数据库连接加解密工具（DevOps 直连调用，匿名放行；清单见
+            // 技术文档/nacos配置/前后端忽视加解密接口白名单.md）
+            "/api/v1/jasypt/**",
+            // 许可证校验
+            "/api/license/**",
             // OAuth2 客户端管理（平台内部专用：宿主安全链放行，
             // 真正鉴权由 @InnerAuth 校验 from-source: inner 请求头承担）
             "/api/v1/client/admin/**",
