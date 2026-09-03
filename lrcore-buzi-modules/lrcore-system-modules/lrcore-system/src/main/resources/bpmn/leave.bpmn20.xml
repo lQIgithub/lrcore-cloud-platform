@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="http://flowable.org/bpmn20">
+    <process id="leave" name="公司请假流程" isExecutable="true">
+        <startEvent id="startEvent" name="开始" flowable:initiator="applyUser">
+            <outgoing>flow_start_apply</outgoing>
+        </startEvent>
+        <userTask id="node_apply" name="填写请假申请" flowable:assignee="${applyUser}">
+            <incoming>flow_start_apply</incoming>
+            <outgoing>flow_apply_approve</outgoing>
+        </userTask>
+        <userTask id="node_approve" name="经理审批" flowable:assignee="${manager}">
+            <incoming>flow_apply_approve</incoming>
+            <outgoing>flow_approve_gateway</outgoing>
+        </userTask>
+        <exclusiveGateway id="approveGateway" name="审批结果" default="flow_gateway_end_default">
+            <incoming>flow_approve_gateway</incoming>
+            <outgoing>flow_gateway_end_yes</outgoing>
+            <outgoing>flow_gateway_end_default</outgoing>
+        </exclusiveGateway>
+        <endEvent id="endEvent" name="结束">
+            <incoming>flow_gateway_end_yes</incoming>
+            <incoming>flow_gateway_end_default</incoming>
+        </endEvent>
+        <sequenceFlow id="flow_start_apply" sourceRef="startEvent" targetRef="node_apply"/>
+        <sequenceFlow id="flow_apply_approve" sourceRef="node_apply" targetRef="node_approve"/>
+        <sequenceFlow id="flow_approve_gateway" sourceRef="node_approve" targetRef="approveGateway"/>
+        <sequenceFlow id="flow_gateway_end_yes" name="通过" sourceRef="approveGateway" targetRef="endEvent">
+            <conditionExpression xsi:type="tFormalExpression"><![CDATA[${approved == true}]]></conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow_gateway_end_default" name="不通过/结束" sourceRef="approveGateway" targetRef="endEvent"/>
+    </process>
+</definitions>
