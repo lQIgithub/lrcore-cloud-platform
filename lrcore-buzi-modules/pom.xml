@@ -25,6 +25,9 @@
         <!--业务规则插件模块-->
         <module>lrcore-bizrule-plugin-modules</module>
 
+        <!--AI模块-->
+        <module>lrcore-ai-modules</module>
+
     </modules>
 
 </project>

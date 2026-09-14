@@ -26,6 +26,7 @@
         <service-name-system>lrcore-system</service-name-system>
         <service-name-rule>lrcore-rule</service-name-rule>
         <service-name-flowable>lrcore-flowable</service-name-flowable>
+        <service-name-ai>lrcore-ai</service-name-ai>
         <!--新增的业务模块依次往下添加-->
 
         <!--业务系统版本号-->
@@ -61,7 +62,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-
             <!-- 各业务系统对外暴露的OpenAPI接口模块 -->
 
             <!-- 系统模块API接口 -->
@@ -92,6 +92,7 @@
                 <lrcore.system-port>10803</lrcore.system-port>
                 <lrcore.rule-port>10804</lrcore.rule-port>
                 <lrcore.flowable-port>10805</lrcore.flowable-port>
+                <lrcore.ai-port>10806</lrcore.ai-port>
                 <!-- 企业业务模块 -->
 
                 <!-- nacos配置 -->
