@@ -1,7 +1,7 @@
-package com.lrcore.system.controller;
+package com.lrcore.ai.controller;
 
+import com.lrcore.common.ai.config.SystemAssistantAgent;
 import com.lrcore.common.core.web.domain.ApiResult;
-import com.lrcore.system.agent.SystemAssistantAgent;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,12 +14,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 智能体控制器
+ * <p>类模块说明</p>
+
+ * @Describe: 智能体控制器
  * <p>
  * 提供智能体对话的 REST API 接口
  * </p>
  *
- * @author lrcore
+ * @ClassName: AgentController
+ * @Author: Qi Liu
+ * @Date: 2026/9/17 23:13
+ * @Version: 1.0
  */
 @Slf4j
 @Tag(name = "智能体管理", description = "智能体对话相关接口")
