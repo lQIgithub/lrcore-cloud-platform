@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true" scanPeriod="60 seconds" debug="false">
-    <!-- 日志存放路径 -->
-	<property name="log.path" value="../../logs/lrcore-visual-monitor" />
+    <!-- 日志存放路径（自动创建目录） -->
+    <define name="log.path" class="com.lrcore.common.core.log.LogDirPropertyDefiner">
+        <path>../../logs/lrcore-visual-monitor</path>
+    </define>
    <!-- 日志输出格式 -->
 	<property name="log.pattern" value="%d{HH:mm:ss.SSS} [%thread] %-5level %logger{20} - [%method,%line] - %msg%n" />
 
