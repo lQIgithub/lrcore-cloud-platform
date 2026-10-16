@@ -2,6 +2,7 @@ package com.lrcore.ai;
 
 
 import com.lrcore.common.annotations.annotation.LrcoreCloudApplication;
+import io.agentscope.harness.agent.HarnessAgent;
 import org.springframework.boot.SpringApplication;
 
 /**
