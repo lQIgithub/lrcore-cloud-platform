@@ -58,6 +58,12 @@ public class SysDeptEntity extends BaseEntity {
     @Size(max = 50, message = "部门编码长度不能超过50个字符")
     private String deptCode;
 
+    @Schema(description = "部门状态（0启用 1禁用）")
+    private Integer status;
+
+    @Schema(description = "显示排序")
+    private Integer sortOrder;
+
     @Schema(description = "子部门列表")
     @Column(ignore = true)
     private List<SysDeptEntity> children = new ArrayList<>();
