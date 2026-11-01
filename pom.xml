@@ -26,6 +26,7 @@
         <service-name-system>lrcore-system</service-name-system>
         <service-name-rule>lrcore-rule</service-name-rule>
         <service-name-flowable>lrcore-flowable</service-name-flowable>
+        <!--AI模块-->
         <service-name-ai>lrcore-ai</service-name-ai>
         <!--新增的业务模块依次往下添加-->
 
