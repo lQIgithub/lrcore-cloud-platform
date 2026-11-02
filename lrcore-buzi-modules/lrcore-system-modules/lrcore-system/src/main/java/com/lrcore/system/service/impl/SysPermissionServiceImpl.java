@@ -110,6 +110,43 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
     }
 
     /**
+     * 批量更新菜单排序
+     *
+     * @param items 菜单排序项
+     * @return 是否更新成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateSort(List<SortItem> items) {
+        if (items == null || items.isEmpty()) {
+            return false;
+        }
+
+        List<Long> ids = items.stream()
+                .map(SortItem::id)
+                .filter(Objects::nonNull)
+                .toList();
+        List<SysPermissionEntity> permissions = mapper.selectListByIds(ids);
+        if (permissions.size() != ids.size()) {
+            throw new ServiceException("菜单不存在");
+        }
+
+        for (SortItem item : items) {
+            if (item.id() == null || item.sort() == null) {
+                throw new ServiceException("菜单排序参数不能为空");
+            }
+
+            SysPermissionEntity permission = new SysPermissionEntity();
+            permission.setId(item.id());
+            permission.setSort(item.sort());
+            if (!updateById(permission)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * 获取权限完整路径
      *
      * @param permissionId 权限ID

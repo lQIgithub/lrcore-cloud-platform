@@ -1,0 +1,10 @@
+UPDATE `sys_permission` SET `sort` = 1  WHERE `id` = 7264590000000000184;
+UPDATE `sys_permission` SET `sort` = 2  WHERE `id` = 7264590000000000142;
+UPDATE `sys_permission` SET `sort` = 3  WHERE `id` = 7264590000000000143;
+UPDATE `sys_permission` SET `sort` = 4  WHERE `id` = 7264590000000000144;
+UPDATE `sys_permission` SET `sort` = 5  WHERE `id` = 7264590000000000145;
+UPDATE `sys_permission` SET `sort` = 6  WHERE `id` = 7264590000000000146;
+UPDATE `sys_permission` SET `sort` = 7  WHERE `id` = 7264590000000000147;
+UPDATE `sys_permission` SET `sort` = 8  WHERE `id` = 7264590000000000148;
+UPDATE `sys_permission` SET `sort` = 9  WHERE `id` = 7264590000000000149;
+UPDATE `sys_permission` SET `sort` = 10 WHERE `id` = 7264590000000000150;

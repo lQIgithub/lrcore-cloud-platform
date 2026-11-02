@@ -84,6 +84,21 @@ public class SysPermissionController extends BaseController {
         return ApiResult.success(sysPermissionService.updateById(sysPermission));
     }
 
+    /**
+     * 批量更新菜单排序
+     *
+     * @param request 菜单排序项
+     * @return 是否更新成功
+     */
+    @PutMapping("/sort")
+    @Schema(description = "批量更新菜单排序")
+    public ApiResult<Boolean> updateSort(
+            @RequestBody SortRequest request) {
+        return ApiResult.success(sysPermissionService.updateSort(request.items()));
+    }
+
+    private record SortRequest(List<ISysPermissionService.SortItem> items) {}
+
 
     /**
      * 根据权限信息表主键获取详细信息。

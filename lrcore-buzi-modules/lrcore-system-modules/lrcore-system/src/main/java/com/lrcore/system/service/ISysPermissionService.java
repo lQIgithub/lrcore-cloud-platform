@@ -15,6 +15,11 @@ import java.util.List;
 public interface ISysPermissionService extends IService<SysPermissionEntity> {
 
     /**
+     * 菜单排序项。
+     */
+    record SortItem(Long id, Integer sort) {}
+
+    /**
      * 获取所有子权限ID（递归）
      *
      * @param parentId 父权限ID
@@ -38,6 +43,14 @@ public interface ISysPermissionService extends IService<SysPermissionEntity> {
      * @return 权限树列表
      */
     List<SysPermissionEntity> buildPermissionTree(List<SysPermissionEntity> permissions, Long parentId);
+
+    /**
+     * 批量更新菜单排序
+     *
+     * @param items 菜单排序项
+     * @return 是否更新成功
+     */
+    boolean updateSort(List<SortItem> items);
 
     /**
      * 获取权限完整路径
