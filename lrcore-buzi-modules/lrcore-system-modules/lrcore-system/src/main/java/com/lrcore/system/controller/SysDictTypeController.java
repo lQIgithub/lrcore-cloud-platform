@@ -1,9 +1,11 @@
 package com.lrcore.system.controller;
 
 import com.lrcore.common.core.web.controller.BaseController;
+import com.lrcore.common.core.exception.ServiceException;
 import com.lrcore.common.core.web.domain.ApiResult;
 import com.lrcore.system.domain.SysDictTypeEntity;
 import com.lrcore.system.domain.apt.SysDictTypeAPT;
+import com.lrcore.system.service.ISysAppService;
 import com.lrcore.system.service.ISysDictTypeService;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -33,6 +35,7 @@ import java.util.Objects;
 public class SysDictTypeController extends BaseController {
 
     private final ISysDictTypeService dictTypeService;
+    private final ISysAppService appService;
 
     @Operation(summary = "字典类型分页列表")
     @GetMapping
@@ -40,7 +43,8 @@ public class SysDictTypeController extends BaseController {
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String keywords,
-            @RequestParam(required = false) Integer status
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Long appId
     ) {
         QueryWrapper query = QueryWrapper.create()
                 .where(SysDictTypeAPT.SYS_DICT_TYPE.DELETED.eq(0));
@@ -52,6 +56,9 @@ public class SysDictTypeController extends BaseController {
         }
         if (Objects.nonNull(status)) {
             query.and(SysDictTypeAPT.SYS_DICT_TYPE.STATUS.eq(toBackendStatus(status)));
+        }
+        if (Objects.nonNull(appId)) {
+            query.and(SysDictTypeAPT.SYS_DICT_TYPE.APP_ID.eq(appId));
         }
 
         query.orderBy(SysDictTypeAPT.SYS_DICT_TYPE.CREATE_TIME.desc());
@@ -83,6 +90,7 @@ public class SysDictTypeController extends BaseController {
     @PostMapping
     public ApiResult<Boolean> create(@RequestBody DictTypeForm form) {
         SysDictTypeEntity entity = toEntity(form, null);
+        validateAppRelation(entity.getAppId());
         entity.setDeleted(0);
         return ApiResult.success(dictTypeService.save(entity));
     }
@@ -90,7 +98,9 @@ public class SysDictTypeController extends BaseController {
     @Operation(summary = "修改字典类型")
     @PutMapping("/{id}")
     public ApiResult<Boolean> update(@PathVariable Long id, @RequestBody DictTypeForm form) {
-        return ApiResult.success(dictTypeService.updateById(toEntity(form, id)));
+        SysDictTypeEntity entity = toEntity(form, id);
+        validateAppRelation(entity.getAppId());
+        return ApiResult.success(dictTypeService.updateById(entity));
     }
 
     @Operation(summary = "删除字典类型")
@@ -108,6 +118,7 @@ public class SysDictTypeController extends BaseController {
                 entity.getId().toString(),
                 entity.getDictName(),
                 entity.getDictType(),
+                Objects.toString(entity.getAppId(), "0"),
                 toFrontendStatus(entity.getStatus())
         );
     }
@@ -117,6 +128,7 @@ public class SysDictTypeController extends BaseController {
                 entity.getId().toString(),
                 entity.getDictName(),
                 entity.getDictType(),
+                Objects.toString(entity.getAppId(), "0"),
                 toFrontendStatus(entity.getStatus()),
                 entity.getRemark()
         );
@@ -127,9 +139,30 @@ public class SysDictTypeController extends BaseController {
         entity.setId(id);
         entity.setDictName(form.name());
         entity.setDictType(form.dictCode());
+        entity.setAppId(parseAppId(form.appId()));
         entity.setStatus(toBackendStatus(form.status()));
         entity.setRemark(form.remark());
         return entity;
+    }
+
+    private Long parseAppId(String appId) {
+        if (Objects.isNull(appId) || appId.isBlank()) {
+            return 0L;
+        }
+        try {
+            return Long.valueOf(appId);
+        } catch (NumberFormatException ignored) {
+            throw new ServiceException("应用ID格式不正确");
+        }
+    }
+
+    private void validateAppRelation(Long appId) {
+        if (Objects.isNull(appId) || appId < 0) {
+            throw new ServiceException("应用ID不能为空");
+        }
+        if (appId > 0 && Objects.isNull(appService.getById(appId))) {
+            throw new ServiceException("应用不存在");
+        }
     }
 
     private Integer toBackendStatus(Integer status) {
@@ -141,7 +174,7 @@ public class SysDictTypeController extends BaseController {
     }
 
     private record PageResponse<T>(List<T> list, long total) {}
-    private record DictTypeItem(String id, String name, String dictCode, Integer status) {}
-    private record DictTypeForm(String id, String name, String dictCode, Integer status, String remark) {}
+    private record DictTypeItem(String id, String name, String dictCode, String appId, Integer status) {}
+    private record DictTypeForm(String id, String name, String dictCode, String appId, Integer status, String remark) {}
     private record Option(String value, String label, String code) {}
 }

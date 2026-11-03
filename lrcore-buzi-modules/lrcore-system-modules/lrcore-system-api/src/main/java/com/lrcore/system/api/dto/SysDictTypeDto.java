@@ -44,6 +44,11 @@ public class SysDictTypeDto extends BaseEntity {
     private String dictType;
 
     /**
+     * 应用ID（0表示平台级字典）
+     */
+    private Long appId;
+
+    /**
      * 状态（0正常 1停用）
      */
     private String status;

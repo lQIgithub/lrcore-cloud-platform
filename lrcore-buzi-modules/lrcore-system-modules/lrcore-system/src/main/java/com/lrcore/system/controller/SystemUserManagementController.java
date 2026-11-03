@@ -5,12 +5,14 @@ import com.lrcore.common.core.enums.UserStatusEnum;
 import com.lrcore.common.core.web.controller.BaseController;
 import com.lrcore.common.core.web.domain.ApiResult;
 import com.lrcore.system.domain.SysDeptEntity;
+import com.lrcore.system.domain.SysEnterpriseEntity;
 import com.lrcore.system.domain.SysRoleEntity;
 import com.lrcore.system.domain.SysUserEntity;
 import com.lrcore.system.domain.SysUserRoleEntity;
 import com.lrcore.system.domain.apt.SysUserAPT;
 import com.lrcore.system.domain.apt.SysUserRoleAPT;
 import com.lrcore.system.service.ISysDeptService;
+import com.lrcore.system.service.ISysEnterpriseService;
 import com.lrcore.system.service.ISysRoleService;
 import com.lrcore.system.service.ISysUserRoleService;
 import com.lrcore.system.service.ISysUserService;
@@ -50,6 +52,7 @@ public class SystemUserManagementController extends BaseController {
     private final ISysUserService userService;
     private final ISysRoleService roleService;
     private final ISysDeptService deptService;
+    private final ISysEnterpriseService enterpriseService;
     private final ISysUserRoleService userRoleService;
     private final PasswordEncoder passwordEncoder;
 
@@ -195,6 +198,11 @@ public class SystemUserManagementController extends BaseController {
         user.setAvatar(form.avatar());
         user.setStatus(toUserStatus(form.status()));
         user.setDeptId(Objects.isNull(form.deptId()) ? null : Long.valueOf(form.deptId()));
+        if (Objects.nonNull(user.getDeptId())) {
+            Optional.ofNullable(deptService.getById(user.getDeptId()))
+                    .map(SysDeptEntity::getEnterpriseId)
+                    .ifPresent(user::setEnterpriseId);
+        }
         return user;
     }
 
@@ -232,17 +240,28 @@ public class SystemUserManagementController extends BaseController {
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining(","));
 
+        String enterpriseName = null;
         String deptName = null;
-        if (Objects.nonNull(user.getDeptId())) {
-            deptName = Optional.ofNullable(deptService.getById(user.getDeptId()))
-                    .map(SysDeptEntity::getDeptName)
-                    .orElse(null);
+        SysDeptEntity dept = Objects.isNull(user.getDeptId())
+                ? null
+                : deptService.getById(user.getDeptId());
+        if (Objects.nonNull(dept)) {
+            deptName = dept.getDeptName();
+            Long enterpriseId = Objects.nonNull(user.getEnterpriseId())
+                    ? user.getEnterpriseId()
+                    : dept.getEnterpriseId();
+            enterpriseName = Objects.isNull(enterpriseId)
+                    ? null
+                    : Optional.ofNullable(enterpriseService.getById(enterpriseId))
+                            .map(SysEnterpriseEntity::getEntName)
+                            .orElse(null);
         }
 
         return new UserItem(
                 user.getId().toString(),
                 user.getAvatar(),
                 user.getCreateTime(),
+                enterpriseName,
                 deptName,
                 user.getEmail(),
                 Optional.ofNullable(user.getSex()).map(SexEnum::getCode).orElse(null),
@@ -276,6 +295,7 @@ public class SystemUserManagementController extends BaseController {
             String id,
             String avatar,
             LocalDateTime createTime,
+            String enterpriseName,
             String deptName,
             String email,
             Integer gender,

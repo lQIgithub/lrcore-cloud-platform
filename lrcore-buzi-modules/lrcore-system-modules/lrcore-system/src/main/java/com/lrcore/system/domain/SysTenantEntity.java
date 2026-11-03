@@ -55,4 +55,7 @@ public class SysTenantEntity extends BaseEntity {
     @Schema(description = "租户状态（0启用 1禁用）")
     private Integer status;
 
+    @Schema(description = "显示排序")
+    private Integer sortOrder;
+
 }

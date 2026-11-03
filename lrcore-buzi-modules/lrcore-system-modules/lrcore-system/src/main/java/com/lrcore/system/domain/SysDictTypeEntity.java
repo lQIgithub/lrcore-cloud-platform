@@ -107,6 +107,13 @@ public class SysDictTypeEntity extends BaseEntity {
     private String dictType;
 
     /**
+     * 应用ID
+     * <p>功能说明：字典归属应用；0表示平台级字典</p>
+     */
+    @Schema(description = "应用ID（0表示平台级字典）")
+    private Long appId;
+
+    /**
      * 状态
      * <p>功能说明：控制字典类型的使用状态</p>
      * <p>数据约束：0-正常（可用），1-停用（不可用）</p>

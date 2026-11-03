@@ -53,7 +53,8 @@ public class SysTenantManagementController extends BaseController {
             query.and(SysTenantAPT.SYS_TENANT.STATUS.eq(toBackendStatus(status)));
         }
 
-        query.orderBy(SysTenantAPT.SYS_TENANT.CREATE_TIME.desc());
+        query.orderBy(SysTenantAPT.SYS_TENANT.SORT_ORDER.asc())
+                .orderBy(SysTenantAPT.SYS_TENANT.CREATE_TIME.desc());
         Page<SysTenantEntity> result = tenantService.page(Page.of(pageNum, pageSize), query);
         List<TenantItem> items = result.getRecords().stream().map(this::toItem).toList();
         return ApiResult.success(new PageResponse<>(items, result.getTotalRow()));
@@ -72,7 +73,9 @@ public class SysTenantManagementController extends BaseController {
         if (existsTenantCode(form.code(), null)) {
             return ApiResult.fail("租户编码已存在");
         }
-        return ApiResult.success(tenantService.save(toEntity(form, null)));
+        SysTenantEntity entity = toEntity(form, null);
+        entity.setSortOrder((int) (tenantService.count() + 1));
+        return ApiResult.success(tenantService.save(entity));
     }
 
     @Operation(summary = "修改租户")
@@ -94,6 +97,12 @@ public class SysTenantManagementController extends BaseController {
         return ApiResult.success(tenantService.removeByIds(idList));
     }
 
+    @Operation(summary = "批量更新租户排序")
+    @PutMapping("/sort")
+    public ApiResult<Boolean> updateSort(@RequestBody SortRequest request) {
+        return ApiResult.success(tenantService.updateSort(request.items()));
+    }
+
     private boolean existsTenantCode(String tenantCode, Long excludeId) {
         QueryWrapper query = QueryWrapper.create()
                 .where(SysTenantAPT.SYS_TENANT.TENANT_CODE.eq(tenantCode))
@@ -109,6 +118,7 @@ public class SysTenantManagementController extends BaseController {
                 entity.getId().toString(),
                 entity.getTenantName(),
                 entity.getTenantCode(),
+                Objects.requireNonNullElse(entity.getSortOrder(), 0),
                 entity.getTenantDesc(),
                 entity.getRemark(),
                 toFrontendStatus(entity.getStatus())
@@ -151,6 +161,7 @@ public class SysTenantManagementController extends BaseController {
             String id,
             String name,
             String code,
+            Integer sort,
             String description,
             String remark,
             Integer status
@@ -163,4 +174,5 @@ public class SysTenantManagementController extends BaseController {
             String remark,
             Integer status
     ) {}
+    private record SortRequest(List<ISysTenantService.SortItem> items) {}
 }
