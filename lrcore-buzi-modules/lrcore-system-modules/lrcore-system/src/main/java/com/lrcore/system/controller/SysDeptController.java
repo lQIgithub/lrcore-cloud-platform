@@ -83,8 +83,8 @@ public class SysDeptController extends BaseController {
      */
     @GetMapping("/list")
     @Schema(description = "获取部门列表")
-    public ApiResult<List<SysDeptEntity>> list() {
-        return ApiResult.success(sysDeptService.list());
+    public ApiResult<List<SysDeptEntity>> list(@RequestParam Long enterpriseId) {
+        return ApiResult.success(sysDeptService.selectDeptsByEnterpriseId(enterpriseId));
     }
 
 

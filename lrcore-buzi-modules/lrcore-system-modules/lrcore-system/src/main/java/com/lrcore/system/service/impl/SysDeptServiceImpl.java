@@ -8,6 +8,7 @@ import com.lrcore.common.core.web.domain.TreeNode;
 import com.lrcore.common.core.web.domain.login.LoginUser;
 import com.lrcore.common.core.web.domain.login.SysDeptInfo;
 import com.lrcore.common.core.web.domain.login.SysEnterpriseInfo;
+import com.lrcore.common.core.web.domain.login.SysRoleInfo;
 import com.lrcore.system.domain.SysDeptEntity;
 import com.lrcore.system.domain.SysEnterpriseEntity;
 import com.lrcore.system.domain.SysUserEnterpriseEntity;
@@ -64,7 +65,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDeptEntity
         List<SysDeptEntity> sysDeptEntities = this.list();
         Assert.notNull(sysDeptEntities, "部门列表不能为空");
         List<SysEnterpriseEntity> enterpriseEntities = null;
-        if (loginUser.isAdmin()) { // 超级管理员
+        if (isSuperAdmin(loginUser)) { // 平台超级管理员
             enterpriseEntities = sysEnterpriseService.list();
         } else { // 普通账户
             List<SysEnterpriseInfo> managerEnterprises = loginUser.getManagerEnterprises();// 当前用户可管理企业
@@ -135,7 +136,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDeptEntity
 
         try {
             QueryWrapper queryWrapper = QueryWrapper.create()
-                    .where(SysDeptEntity::getParentId).eq(enterpriseId)
+                    .where(SysDeptEntity::getEnterpriseId).eq(enterpriseId)
                     .and(SysDeptEntity::getDeleted).eq("0")
                     .orderBy(SysDeptEntity::getId, true);
 
@@ -220,5 +221,14 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDeptEntity
         }
 
         return tree;
+    }
+
+    private boolean isSuperAdmin(LoginUser loginUser) {
+        if (loginUser.isAdmin()) {
+            return true;
+        }
+        List<SysRoleInfo> roles = loginUser.getRoles();
+        return roles != null && roles.stream()
+                .anyMatch(role -> "super_admin".equals(role.getRoleCode()));
     }
 }
