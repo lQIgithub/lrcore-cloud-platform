@@ -1,14 +1,12 @@
 package com.lrcore.system.service.impl;
 
 import com.lrcore.common.core.exception.ServiceException;
+import com.lrcore.common.core.constant.GlobalConstants;
 import com.lrcore.common.core.utils.FunCollectUtils;
 import com.lrcore.common.core.utils.SecurityUtils;
 import com.lrcore.common.core.utils.tree.TreeUtils;
 import com.lrcore.common.core.web.domain.TreeNode;
-import com.lrcore.common.core.web.domain.login.LoginUser;
 import com.lrcore.common.core.web.domain.login.SysDeptInfo;
-import com.lrcore.common.core.web.domain.login.SysEnterpriseInfo;
-import com.lrcore.common.core.web.domain.login.SysRoleInfo;
 import com.lrcore.system.domain.SysDeptEntity;
 import com.lrcore.system.domain.SysEnterpriseEntity;
 import com.lrcore.system.domain.SysUserEnterpriseEntity;
@@ -61,20 +59,18 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDeptEntity
 
     @Override
     public List<TreeNode> getDeptTree() {
-        LoginUser loginUser = SecurityUtils.getLoginUser();
-        Assert.notNull(loginUser, "用户未登录，请登录!");
+        Long userId = SecurityUtils.getUserId();
+        Assert.notNull(userId, "用户未登录，请登录!");
         List<SysDeptEntity> sysDeptEntities = this.list();
         Assert.notNull(sysDeptEntities, "部门列表不能为空");
-        List<SysEnterpriseEntity> enterpriseEntities = null;
-        if (isSuperAdmin(loginUser)) { // 平台超级管理员
+
+        List<SysEnterpriseEntity> enterpriseEntities;
+        if (GlobalConstants.isAdmin(userId)) { // 平台超级管理员
             enterpriseEntities = sysEnterpriseService.list();
         } else { // 普通账户
-            List<SysEnterpriseInfo> managerEnterprises = loginUser.getManagerEnterprises();// 当前用户可管理企业
-            List<Long> enterpriseIds = new ArrayList<>();
-            if (FunCollectUtils.isNotEmpty(managerEnterprises)) {
-                enterpriseIds.addAll(managerEnterprises.stream().map(SysEnterpriseInfo::getEnterpriseId).toList());
-            } else {
-                enterpriseIds.add(loginUser.getEnterpriseId());
+            List<Long> enterpriseIds = getEnterpriseIdsByUserId(userId);
+            if (FunCollectUtils.isEmpty(enterpriseIds)) {
+                return new ArrayList<>();
             }
             QueryWrapper queryWrapper = QueryWrapper.create().where(SysEnterpriseAPT.SYS_ENTERPRISE.ID.in(enterpriseIds));
             enterpriseEntities = sysEnterpriseService.list(queryWrapper);
@@ -255,12 +251,4 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDeptEntity
         return tree;
     }
 
-    private boolean isSuperAdmin(LoginUser loginUser) {
-        if (loginUser.isAdmin()) {
-            return true;
-        }
-        List<SysRoleInfo> roles = loginUser.getRoles();
-        return roles != null && roles.stream()
-                .anyMatch(role -> "super_admin".equals(role.getRoleCode()));
-    }
 }
