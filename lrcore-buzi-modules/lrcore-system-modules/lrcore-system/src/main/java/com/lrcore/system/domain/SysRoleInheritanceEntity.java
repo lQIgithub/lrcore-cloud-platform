@@ -2,6 +2,7 @@ package com.lrcore.system.domain;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.lrcore.common.core.web.domain.BaseEntity;
+import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Table;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
@@ -36,6 +37,10 @@ import java.time.LocalDateTime;
 @Table(value = "sys_role_inheritance")
 @Schema(description = "角色继承关系实体")
 public class SysRoleInheritanceEntity extends BaseEntity {
+
+    @Column("build_in")
+    @Schema(description = "是否系统内置（0否 1是）")
+    private Integer buildIn;
 
     @Serial
     private static final long serialVersionUID = 1L;

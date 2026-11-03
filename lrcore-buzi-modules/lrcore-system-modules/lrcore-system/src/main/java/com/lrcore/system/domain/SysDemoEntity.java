@@ -1,6 +1,7 @@
 package com.lrcore.system.domain;
 
 import com.lrcore.common.core.web.domain.BaseEntity;
+import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Table;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -33,6 +34,10 @@ import java.io.Serial;
 @Table(value = "sys_demo")
 @Schema(description = "演示信息实体")
 public class SysDemoEntity extends BaseEntity {
+
+    @Column("build_in")
+    @Schema(description = "是否系统内置（0否 1是）")
+    private Integer buildIn;
 
     @Serial
     private static final long serialVersionUID = 1L;

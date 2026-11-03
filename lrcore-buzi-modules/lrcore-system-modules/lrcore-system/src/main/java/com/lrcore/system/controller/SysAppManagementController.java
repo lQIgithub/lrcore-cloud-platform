@@ -119,7 +119,8 @@ public class SysAppManagementController extends BaseController {
                 entity.getPermissionPrefix(),
                 entity.getRemark(),
                 entity.getTenantId(),
-                toFrontendStatus(entity.getStatus())
+                toFrontendStatus(entity.getStatus()),
+                entity.getBuildIn()
         );
     }
 
@@ -173,7 +174,8 @@ public class SysAppManagementController extends BaseController {
             String permissionPrefix,
             String remark,
             Long tenantId,
-            Integer status
+            Integer status,
+            Integer buildIn
     ) {}
     private record AppForm(
             String id,

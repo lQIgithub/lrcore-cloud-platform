@@ -121,7 +121,8 @@ public class SysTenantManagementController extends BaseController {
                 Objects.requireNonNullElse(entity.getSortOrder(), 0),
                 entity.getTenantDesc(),
                 entity.getRemark(),
-                toFrontendStatus(entity.getStatus())
+                toFrontendStatus(entity.getStatus()),
+                entity.getBuildIn()
         );
     }
 
@@ -164,7 +165,8 @@ public class SysTenantManagementController extends BaseController {
             Integer sort,
             String description,
             String remark,
-            Integer status
+            Integer status,
+            Integer buildIn
     ) {}
     private record TenantForm(
             String id,

@@ -164,7 +164,8 @@ public class SysEnterpriseController extends BaseController {
                 entity.getAddress(),
                 entity.getEntDesc(),
                 entity.getTenantId(),
-                toFrontendStatus(entity.getStatus())
+                toFrontendStatus(entity.getStatus()),
+                entity.getBuildIn()
         );
     }
 
@@ -235,7 +236,8 @@ public class SysEnterpriseController extends BaseController {
             String address,
             String description,
             Long tenantId,
-            Integer status
+            Integer status,
+            Integer buildIn
     ) {}
     private record EnterpriseForm(
             String id,

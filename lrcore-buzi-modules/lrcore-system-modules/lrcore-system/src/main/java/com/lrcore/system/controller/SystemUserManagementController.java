@@ -119,6 +119,7 @@ public class SystemUserManagementController extends BaseController {
         return ApiResult.success(new UserForm(
                 user.getId().toString(),
                 user.getAvatar(),
+                Objects.toString(user.getEnterpriseId(), null),
                 Objects.toString(user.getDeptId(), null),
                 user.getEmail(),
                 Optional.ofNullable(user.getSex()).map(SexEnum::getCode).orElse(null),
@@ -197,6 +198,9 @@ public class SystemUserManagementController extends BaseController {
         user.setSex(SexEnum.getSexEnumByCode(form.gender()));
         user.setAvatar(form.avatar());
         user.setStatus(toUserStatus(form.status()));
+        if (Objects.nonNull(form.enterpriseId())) {
+            user.setEnterpriseId(Long.valueOf(form.enterpriseId()));
+        }
         user.setDeptId(Objects.isNull(form.deptId()) ? null : Long.valueOf(form.deptId()));
         if (Objects.nonNull(user.getDeptId())) {
             Optional.ofNullable(deptService.getById(user.getDeptId()))
@@ -269,7 +273,8 @@ public class SystemUserManagementController extends BaseController {
                 user.getNickName(),
                 roleNames,
                 toCommonStatus(user.getStatus()),
-                user.getUsername()
+                user.getUsername(),
+                user.getBuildIn()
         );
     }
 
@@ -303,13 +308,15 @@ public class SystemUserManagementController extends BaseController {
             String nickname,
             String roleNames,
             Integer status,
-            String username
+            String username,
+            Integer buildIn
     ) {
     }
 
     private record UserForm(
             String id,
             String avatar,
+            String enterpriseId,
             String deptId,
             String email,
             Integer gender,

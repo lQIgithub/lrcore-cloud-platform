@@ -42,7 +42,9 @@ public class SystemRoleManagementController extends BaseController {
     public ApiResult<PageResponse<RoleItem>> page(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String keywords
+            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) Long appId,
+            @RequestParam(required = false) String roleScope
     ) {
         QueryWrapper query = QueryWrapper.create()
                 .where(SysRoleAPT.SYS_ROLE.DELETED.eq(0));
@@ -51,6 +53,14 @@ public class SystemRoleManagementController extends BaseController {
             query.and(SysRoleAPT.SYS_ROLE.ROLE_NAME.like(keyword)
                     .or(SysRoleAPT.SYS_ROLE.ROLE_CODE.like(keyword)));
         }
+        if (Objects.nonNull(appId)) {
+            query.and(SysRoleAPT.SYS_ROLE.APP_ID.eq(appId));
+        }
+        if (Objects.nonNull(roleScope) && !roleScope.isBlank()) {
+            query.and(SysRoleAPT.SYS_ROLE.ROLE_SCOPE.eq(roleScope.trim()));
+        }
+        query.orderBy(SysRoleAPT.SYS_ROLE.SORT_ORDER.asc())
+                .orderBy(SysRoleAPT.SYS_ROLE.CREATE_TIME.desc());
 
         Page<SysRoleEntity> result = roleService.page(Page.of(pageNum, pageSize), query);
         return ApiResult.success(new PageResponse<>(
@@ -140,8 +150,11 @@ public class SystemRoleManagementController extends BaseController {
                 role.getRoleCode(),
                 role.getRoleName(),
                 "全部数据",
+                Objects.toString(role.getAppId(), "0"),
+                Objects.requireNonNullElse(role.getRoleScope(), "APP"),
                 Objects.equals(role.getStatus(), 0) ? 1 : 0,
                 Optional.ofNullable(role.getSortOrder()).orElse(0),
+                role.getBuildIn(),
                 role.getUpdateTime()
         );
     }
@@ -151,6 +164,8 @@ public class SystemRoleManagementController extends BaseController {
                 role.getId().toString(),
                 role.getRoleCode(),
                 role.getRoleName(),
+                Objects.toString(role.getAppId(), "0"),
+                Objects.requireNonNullElse(role.getRoleScope(), "APP"),
                 1,
                 null,
                 null,
@@ -164,6 +179,14 @@ public class SystemRoleManagementController extends BaseController {
         role.setId(id);
         role.setRoleName(form.name());
         role.setRoleCode(form.code());
+        if (Objects.equals(form.roleScope(), "PLATFORM")) {
+            role.setAppId(0L);
+        } else if (Objects.nonNull(form.appId())) {
+            role.setAppId(Long.valueOf(form.appId()));
+        } else if (Objects.isNull(id)) {
+            role.setAppId(0L);
+        }
+        role.setRoleScope(Objects.equals(form.roleScope(), "PLATFORM") ? "PLATFORM" : "APP");
         role.setStatus(Objects.equals(form.status(), 0) ? 1 : 0);
         role.setSortOrder(form.sort());
         role.setRemark(form.remark());
@@ -178,8 +201,11 @@ public class SystemRoleManagementController extends BaseController {
             String code,
             String name,
             String dataScopeLabel,
+            String appId,
+            String roleScope,
             Integer status,
             Integer sort,
+            Integer buildIn,
             java.time.LocalDateTime updateTime
     ) {
     }
@@ -188,6 +214,8 @@ public class SystemRoleManagementController extends BaseController {
             String id,
             String code,
             String name,
+            String appId,
+            String roleScope,
             Integer dataScope,
             List<String> deptIds,
             Integer sort,

@@ -40,6 +40,10 @@ import java.io.Serial;
 @Schema(description = "数据权限规则实体")
 public class SysDataPermissionRuleEntity extends BaseEntity {
 
+    @Column("build_in")
+    @Schema(description = "是否系统内置（0否 1是）")
+    private Integer buildIn;
+
     @Serial
     private static final long serialVersionUID = 1L;
 

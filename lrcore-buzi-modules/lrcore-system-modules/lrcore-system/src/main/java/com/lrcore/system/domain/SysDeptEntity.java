@@ -35,6 +35,10 @@ import java.util.List;
 @Schema(description = "部门信息实体")
 public class SysDeptEntity extends BaseEntity {
 
+    @Column("build_in")
+    @Schema(description = "是否系统内置（0否 1是）")
+    private Integer buildIn;
+
     @Serial
     private static final long serialVersionUID = 1L;
 

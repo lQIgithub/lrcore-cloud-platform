@@ -2,6 +2,7 @@ package com.lrcore.system.domain;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.lrcore.common.core.web.domain.BaseEntity;
+import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Table;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
@@ -35,6 +36,10 @@ import java.time.LocalDateTime;
 @Table(value = "sys_permission_group_member")
 @Schema(description = "权限组成员关系实体")
 public class SysPermissionGroupMemberEntity extends BaseEntity {
+
+    @Column("build_in")
+    @Schema(description = "是否系统内置（0否 1是）")
+    private Integer buildIn;
 
     @Serial
     private static final long serialVersionUID = 1L;

@@ -2,6 +2,7 @@ package com.lrcore.system.domain;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.lrcore.common.core.web.domain.BaseEntity;
+import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Table;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -38,6 +39,10 @@ import java.time.LocalDateTime;
 @Schema(description = "角色信息实体")
 public class SysRoleEntity extends BaseEntity {
 
+    @Column("build_in")
+    @Schema(description = "是否系统内置（0否 1是）")
+    private Integer buildIn;
+
     @Serial
     private static final long serialVersionUID = 1L;
 
@@ -54,6 +59,10 @@ public class SysRoleEntity extends BaseEntity {
     @Schema(description = "所属应用appID")
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long appId;
+
+    @Schema(description = "角色级别：PLATFORM=平台级，APP=应用级")
+    @Size(max = 20, message = "角色级别长度不能超过20个字符")
+    private String roleScope;
 
     @Schema(description = "角色类型：1=系统内置 2=自定义")
     private Integer roleType;
