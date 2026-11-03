@@ -68,7 +68,7 @@ public class SysDictTypeController extends BaseController {
                 .and(SysDictTypeAPT.SYS_DICT_TYPE.STATUS.eq(0))
                 .orderBy(SysDictTypeAPT.SYS_DICT_TYPE.DICT_NAME.asc()));
         return ApiResult.success(types.stream()
-                .map(type -> new Option(type.getId().toString(), type.getDictName()))
+                .map(type -> new Option(type.getDictType(), type.getDictName(), type.getDictType()))
                 .toList());
     }
 
@@ -143,5 +143,5 @@ public class SysDictTypeController extends BaseController {
     private record PageResponse<T>(List<T> list, long total) {}
     private record DictTypeItem(String id, String name, String dictCode, Integer status) {}
     private record DictTypeForm(String id, String name, String dictCode, Integer status, String remark) {}
-    private record Option(String value, String label) {}
+    private record Option(String value, String label, String code) {}
 }

@@ -119,6 +119,15 @@ public class SysDictDataController extends BaseController {
         return ApiResult.success(dictDataService.removeByIds(idList));
     }
 
+    @Operation(summary = "批量更新字典数据排序")
+    @PutMapping("/{dictCode}/items/sort")
+    public ApiResult<Boolean> updateSort(
+            @PathVariable String dictCode,
+            @RequestBody SortRequest request
+    ) {
+        return ApiResult.success(dictDataService.updateSort(dictCode, request.items()));
+    }
+
     private DictDataItem toItem(SysDictDataEntity entity) {
         return new DictDataItem(
                 entity.getId().toString(),
@@ -193,4 +202,5 @@ public class SysDictDataController extends BaseController {
             String tagType
     ) {}
     private record DictDataOption(String value, String label, String tagType) {}
+    private record SortRequest(List<ISysDictDataService.SortItem> items) {}
 }
