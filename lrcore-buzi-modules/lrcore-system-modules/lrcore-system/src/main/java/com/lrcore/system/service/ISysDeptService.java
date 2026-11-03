@@ -57,5 +57,5 @@ public interface ISysDeptService extends IService<SysDeptEntity> {
      *
      * @return 部门树列表
      */
-    List<TreeNode> getDeptTree();
+    List<TreeNode> getDeptTree(Long enterpriseId);
 }

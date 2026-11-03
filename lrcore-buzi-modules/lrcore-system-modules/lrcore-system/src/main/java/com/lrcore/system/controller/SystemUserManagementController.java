@@ -61,6 +61,7 @@ public class SystemUserManagementController extends BaseController {
             @RequestParam(required = false) String keywords,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) Long deptId,
+            @RequestParam(required = false) Long enterpriseId,
             @RequestParam(required = false) List<String> createTime
     ) {
         QueryWrapper query = QueryWrapper.create()
@@ -79,6 +80,9 @@ public class SystemUserManagementController extends BaseController {
         }
         if (Objects.nonNull(deptId)) {
             query.and(SysUserAPT.SYS_USER.DEPT_ID.eq(deptId));
+        }
+        if (Objects.nonNull(enterpriseId)) {
+            query.and(SysUserAPT.SYS_USER.ENTERPRISE_ID.eq(enterpriseId));
         }
         if (Objects.nonNull(createTime) && createTime.size() >= 2) {
             query.and(SysUserAPT.SYS_USER.CREATE_TIME.between(

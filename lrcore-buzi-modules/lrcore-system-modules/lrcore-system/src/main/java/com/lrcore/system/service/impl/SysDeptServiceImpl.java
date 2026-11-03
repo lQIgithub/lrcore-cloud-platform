@@ -58,7 +58,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDeptEntity
 
 
     @Override
-    public List<TreeNode> getDeptTree() {
+    public List<TreeNode> getDeptTree(Long enterpriseId) {
         Long userId = SecurityUtils.getUserId();
         Assert.notNull(userId, "用户未登录，请登录!");
         List<SysDeptEntity> sysDeptEntities = this.list();
@@ -74,6 +74,11 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDeptEntity
             }
             QueryWrapper queryWrapper = QueryWrapper.create().where(SysEnterpriseAPT.SYS_ENTERPRISE.ID.in(enterpriseIds));
             enterpriseEntities = sysEnterpriseService.list(queryWrapper);
+        }
+        if (enterpriseId != null) {
+            enterpriseEntities = enterpriseEntities.stream()
+                    .filter(enterprise -> Objects.equals(enterprise.getId(), enterpriseId))
+                    .toList();
         }
         Assert.notNull(enterpriseEntities, "企业列表不能为空");
         // 组装企业树形结构

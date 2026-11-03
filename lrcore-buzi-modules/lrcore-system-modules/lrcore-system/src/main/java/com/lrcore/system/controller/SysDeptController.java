@@ -30,8 +30,8 @@ public class SysDeptController extends BaseController {
 
     @GetMapping("/options")
     @Schema(description = "获取登录用户管理企业及部门树形结构")
-    public ApiResult<List<TreeNode>> getDeptTree() {
-        return ApiResult.success(sysDeptService.getDeptTree());
+    public ApiResult<List<TreeNode>> getDeptTree(@RequestParam(required = false) Long enterpriseId) {
+        return ApiResult.success(sysDeptService.getDeptTree(enterpriseId));
     }
 
 

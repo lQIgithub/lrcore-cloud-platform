@@ -43,6 +43,7 @@ public class SysEnterpriseController extends BaseController {
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) Long tenantId,
             @RequestParam(required = false) Integer status
     ) {
         QueryWrapper query = QueryWrapper.create()
@@ -56,6 +57,9 @@ public class SysEnterpriseController extends BaseController {
         }
         if (Objects.nonNull(status)) {
             query.and(SysEnterpriseAPT.SYS_ENTERPRISE.STATUS.eq(toBackendStatus(status)));
+        }
+        if (Objects.nonNull(tenantId)) {
+            query.and(SysEnterpriseAPT.SYS_ENTERPRISE.TENANT_ID.eq(tenantId));
         }
 
         query.orderBy(SysEnterpriseAPT.SYS_ENTERPRISE.CREATE_TIME.desc());
@@ -154,6 +158,7 @@ public class SysEnterpriseController extends BaseController {
                 entity.getPhone(),
                 entity.getAddress(),
                 entity.getEntDesc(),
+                entity.getTenantId(),
                 toFrontendStatus(entity.getStatus())
         );
     }
@@ -168,6 +173,7 @@ public class SysEnterpriseController extends BaseController {
                 entity.getEntDesc(),
                 entity.getPhone(),
                 entity.getAddress(),
+                entity.getTenantId(),
                 toFrontendStatus(entity.getStatus())
         );
     }
@@ -182,6 +188,7 @@ public class SysEnterpriseController extends BaseController {
         entity.setEntDesc(form.description());
         entity.setPhone(form.phone());
         entity.setAddress(form.address());
+        entity.setTenantId(form.tenantId());
         entity.setStatus(toBackendStatus(form.status()));
         entity.setAncestors(resolveAncestors(form.parentId()));
         return entity;
@@ -222,6 +229,7 @@ public class SysEnterpriseController extends BaseController {
             String phone,
             String address,
             String description,
+            Long tenantId,
             Integer status
     ) {}
     private record EnterpriseForm(
@@ -233,6 +241,7 @@ public class SysEnterpriseController extends BaseController {
             String description,
             String phone,
             String address,
+            Long tenantId,
             Integer status
     ) {}
 }
