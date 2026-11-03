@@ -271,9 +271,6 @@
             var card = document.createElement("a");
             card.className = "card";
             card.href = url;
-            if (/^(https?:)?\/\//i.test(url)) {
-              card.setAttribute("target", "_blank");
-            }
             card.setAttribute("rel", "noopener");
             var code = escapeHtml(app.appCode || "APP").toUpperCase();
             var name = escapeHtml(app.appName || "未命名系统");
