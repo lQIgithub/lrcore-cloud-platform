@@ -35,6 +35,16 @@ public interface ISysDeptService extends IService<SysDeptEntity> {
     List<SysDeptEntity> selectDeptsByEnterpriseId(Long enterpriseId);
 
     /**
+     * 批量更新部门排序
+     *
+     * @param items 部门排序项
+     * @return 是否更新成功
+     */
+    boolean updateSort(List<SortItem> items);
+
+    record SortItem(Long id, Integer sort) {}
+
+    /**
      * 获取用户所属部门信息列表
      *
      * @param userId 用户ID

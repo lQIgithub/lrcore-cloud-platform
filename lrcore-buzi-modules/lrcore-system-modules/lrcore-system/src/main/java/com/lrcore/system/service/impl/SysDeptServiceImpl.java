@@ -24,6 +24,7 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import java.util.ArrayList;
@@ -146,6 +147,37 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDeptEntity
             log.error("根据企业ID[{}]查询部门列表失败: {}", enterpriseId, e.getMessage(), e);
             throw new ServiceException("查询部门列表失败: " + e.getMessage());
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateSort(List<SortItem> items) {
+        if (items == null || items.isEmpty()) {
+            return false;
+        }
+
+        List<Long> ids = items.stream()
+                .map(SortItem::id)
+                .filter(Objects::nonNull)
+                .toList();
+        List<SysDeptEntity> depts = this.listByIds(ids);
+        if (depts.size() != ids.size()) {
+            throw new ServiceException("部门不存在");
+        }
+
+        for (SortItem item : items) {
+            if (item.id() == null || item.sort() == null) {
+                throw new ServiceException("部门排序参数不能为空");
+            }
+
+            SysDeptEntity dept = new SysDeptEntity();
+            dept.setId(item.id());
+            dept.setSortOrder(item.sort());
+            if (!updateById(dept)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

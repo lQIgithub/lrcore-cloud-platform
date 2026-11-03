@@ -87,6 +87,20 @@ public class SysDeptController extends BaseController {
         return ApiResult.success(sysDeptService.selectDeptsByEnterpriseId(enterpriseId));
     }
 
+    /**
+     * 批量更新部门排序
+     *
+     * @param request 部门排序项
+     * @return 是否更新成功
+     */
+    @PutMapping("/sort")
+    @Schema(description = "批量更新部门排序")
+    public ApiResult<Boolean> updateSort(@RequestBody SortRequest request) {
+        return ApiResult.success(sysDeptService.updateSort(request.items()));
+    }
+
+    private record SortRequest(List<ISysDeptService.SortItem> items) {}
+
 
     /**
      * 根据部门主键获取详细信息。
