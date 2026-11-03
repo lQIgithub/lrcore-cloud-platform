@@ -85,7 +85,12 @@ public class SysEnterpriseController extends BaseController {
                 .where(SysEnterpriseAPT.SYS_ENTERPRISE.DELETED.eq(0))
                 .orderBy(SysEnterpriseAPT.SYS_ENTERPRISE.ENT_NAME.asc()));
         return ApiResult.success(enterprises.stream()
-                .map(item -> new Option(item.getId().toString(), item.getEntName()))
+                .map(item -> new Option(
+                        item.getId().toString(),
+                        item.getEntName(),
+                        item.getEntCode(),
+                        item.getEntAbbreviation()
+                ))
                 .toList());
     }
 
@@ -218,7 +223,7 @@ public class SysEnterpriseController extends BaseController {
     }
 
     private record PageResponse<T>(List<T> list, long total) {}
-    private record Option(String value, String label) {}
+    private record Option(String value, String label, String code, String abbreviation) {}
     private record EnterpriseItem(
             String id,
             String name,

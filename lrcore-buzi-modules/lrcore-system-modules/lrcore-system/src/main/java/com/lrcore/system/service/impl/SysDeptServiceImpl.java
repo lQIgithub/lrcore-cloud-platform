@@ -96,7 +96,8 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDeptEntity
             List<TreeNode> childTreeNodes = TreeUtils.buildTreeNodeTree(
                     entAllDepts,
                     dept -> TreeNode.builder().nodeId(dept.getId())
-                            .parentNodeId(dept.getParentId()).nodeName(dept.getDeptName()).build(),
+                            .parentNodeId(dept.getParentId()).nodeName(dept.getDeptName())
+                            .code(dept.getDeptCode()).build(),
                     0L
             );
             // 挂载部门数据
