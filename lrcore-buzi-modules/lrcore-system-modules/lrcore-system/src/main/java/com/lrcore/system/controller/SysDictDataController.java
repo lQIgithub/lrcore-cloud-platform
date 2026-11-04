@@ -2,9 +2,13 @@ package com.lrcore.system.controller;
 
 import com.lrcore.common.core.web.controller.BaseController;
 import com.lrcore.common.core.web.domain.ApiResult;
+import com.lrcore.common.core.utils.SecurityUtils;
 import com.lrcore.system.domain.SysDictDataEntity;
+import com.lrcore.system.domain.SysDictTypeEntity;
 import com.lrcore.system.domain.apt.SysDictDataAPT;
+import com.lrcore.system.domain.apt.SysDictTypeAPT;
 import com.lrcore.system.service.ISysDictDataService;
+import com.lrcore.system.service.ISysDictTypeService;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +37,7 @@ import java.util.Objects;
 public class SysDictDataController extends BaseController {
 
     private final ISysDictDataService dictDataService;
+    private final ISysDictTypeService dictTypeService;
 
     @Operation(summary = "字典数据分页列表")
     @GetMapping("/{dictCode}/items")
@@ -163,7 +168,24 @@ public class SysDictDataController extends BaseController {
         entity.setDictSort(Objects.toString(form.sort(), "0"));
         entity.setCssClass(form.tagType());
         entity.setListClass(form.tagType());
+        entity.setTenantId(resolveTenantId(dictCode));
         return entity;
+    }
+
+    private Long resolveTenantId(String dictCode) {
+        Long currentTenantId = SecurityUtils.getTenantId();
+        QueryWrapper query = QueryWrapper.create()
+                .where(SysDictTypeAPT.SYS_DICT_TYPE.DELETED.eq(0))
+                .and(SysDictTypeAPT.SYS_DICT_TYPE.DICT_TYPE.eq(dictCode));
+        if (currentTenantId != null) {
+            query.and(SysDictTypeAPT.SYS_DICT_TYPE.TENANT_ID.eq(currentTenantId));
+        }
+        query.orderBy(SysDictTypeAPT.SYS_DICT_TYPE.CREATE_TIME.desc());
+        List<SysDictTypeEntity> dictTypes = dictTypeService.list(query);
+        if (dictTypes.isEmpty()) {
+            return currentTenantId;
+        }
+        return dictTypes.get(0).getTenantId();
     }
 
     private Integer parseSort(String sort) {

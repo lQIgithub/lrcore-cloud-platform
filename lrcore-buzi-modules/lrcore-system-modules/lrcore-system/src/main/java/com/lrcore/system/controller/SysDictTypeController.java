@@ -4,6 +4,7 @@ import com.lrcore.common.core.web.controller.BaseController;
 import com.lrcore.common.core.exception.ServiceException;
 import com.lrcore.common.core.web.domain.ApiResult;
 import com.lrcore.system.domain.SysDictTypeEntity;
+import com.lrcore.system.domain.SysAppEntity;
 import com.lrcore.system.domain.apt.SysDictTypeAPT;
 import com.lrcore.system.service.ISysAppService;
 import com.lrcore.system.service.ISysDictTypeService;
@@ -89,8 +90,9 @@ public class SysDictTypeController extends BaseController {
     @Operation(summary = "新增字典类型")
     @PostMapping
     public ApiResult<Boolean> create(@RequestBody DictTypeForm form) {
-        SysDictTypeEntity entity = toEntity(form, null);
-        validateAppRelation(entity.getAppId());
+        Long appId = parseAppId(form.appId());
+        Long tenantId = validateAppRelation(appId, form.tenantId());
+        SysDictTypeEntity entity = toEntity(form, null, tenantId);
         entity.setDeleted(0);
         return ApiResult.success(dictTypeService.save(entity));
     }
@@ -98,8 +100,9 @@ public class SysDictTypeController extends BaseController {
     @Operation(summary = "修改字典类型")
     @PutMapping("/{id}")
     public ApiResult<Boolean> update(@PathVariable Long id, @RequestBody DictTypeForm form) {
-        SysDictTypeEntity entity = toEntity(form, id);
-        validateAppRelation(entity.getAppId());
+        Long appId = parseAppId(form.appId());
+        Long tenantId = validateAppRelation(appId, form.tenantId());
+        SysDictTypeEntity entity = toEntity(form, id, tenantId);
         return ApiResult.success(dictTypeService.updateById(entity));
     }
 
@@ -129,17 +132,19 @@ public class SysDictTypeController extends BaseController {
                 entity.getDictName(),
                 entity.getDictType(),
                 Objects.toString(entity.getAppId(), "0"),
+                Objects.toString(entity.getTenantId(), null),
                 toFrontendStatus(entity.getStatus()),
                 entity.getRemark()
         );
     }
 
-    private SysDictTypeEntity toEntity(DictTypeForm form, Long id) {
+    private SysDictTypeEntity toEntity(DictTypeForm form, Long id, Long tenantId) {
         SysDictTypeEntity entity = new SysDictTypeEntity();
         entity.setId(id);
         entity.setDictName(form.name());
         entity.setDictType(form.dictCode());
         entity.setAppId(parseAppId(form.appId()));
+        entity.setTenantId(tenantId);
         entity.setStatus(toBackendStatus(form.status()));
         entity.setRemark(form.remark());
         return entity;
@@ -156,13 +161,21 @@ public class SysDictTypeController extends BaseController {
         }
     }
 
-    private void validateAppRelation(Long appId) {
-        if (Objects.isNull(appId) || appId < 0) {
+    private Long validateAppRelation(Long appId, String requestTenantId) {
+        if (Objects.isNull(appId) || appId <= 0) {
             throw new ServiceException("应用ID不能为空");
         }
-        if (appId > 0 && Objects.isNull(appService.getById(appId))) {
+        SysAppEntity app = appService.getById(appId);
+        if (Objects.isNull(app)) {
             throw new ServiceException("应用不存在");
         }
+        if (Objects.nonNull(app.getTenantId())
+                && Objects.nonNull(requestTenantId)
+                && !requestTenantId.isBlank()
+                && !Objects.equals(app.getTenantId(), Long.valueOf(requestTenantId))) {
+            throw new ServiceException("应用与租户不匹配");
+        }
+        return app.getTenantId();
     }
 
     private Integer toBackendStatus(Integer status) {
@@ -175,6 +188,14 @@ public class SysDictTypeController extends BaseController {
 
     private record PageResponse<T>(List<T> list, long total) {}
     private record DictTypeItem(String id, String name, String dictCode, String appId, Integer status) {}
-    private record DictTypeForm(String id, String name, String dictCode, String appId, Integer status, String remark) {}
+    private record DictTypeForm(
+            String id,
+            String name,
+            String dictCode,
+            String appId,
+            String tenantId,
+            Integer status,
+            String remark
+    ) {}
     private record Option(String value, String label, String code) {}
 }
