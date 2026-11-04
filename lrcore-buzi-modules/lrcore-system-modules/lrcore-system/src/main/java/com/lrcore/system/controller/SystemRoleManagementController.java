@@ -129,6 +129,9 @@ public class SystemRoleManagementController extends BaseController {
     @Operation(summary = "分配角色菜单权限")
     @PutMapping("/{id}/menus")
     public ApiResult<Boolean> updateMenus(@PathVariable Long id, @RequestBody List<Long> menuIds) {
+        Long tenantId = Optional.ofNullable(roleService.getById(id))
+                .map(SysRoleEntity::getTenantId)
+                .orElse(null);
         rolePermissionService.remove(QueryWrapper.create()
                 .where(SysRolePermissionAPT.SYS_ROLE_PERMISSION.ROLE_ID.eq(id)));
         if (Objects.isNull(menuIds) || menuIds.isEmpty()) {
@@ -137,9 +140,13 @@ public class SystemRoleManagementController extends BaseController {
 
         List<SysRolePermissionEntity> relations = menuIds.stream()
                 .distinct()
-                .map(menuId -> new SysRolePermissionEntity()
-                        .setRoleId(id)
-                        .setPermissionId(menuId))
+                .map(menuId -> {
+                    SysRolePermissionEntity relation = new SysRolePermissionEntity();
+                    relation.setRoleId(id);
+                    relation.setTenantId(tenantId);
+                    relation.setPermissionId(menuId);
+                    return relation;
+                })
                 .toList();
         return ApiResult.success(rolePermissionService.saveBatch(relations));
     }
