@@ -8,6 +8,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.beans.factory.ObjectProvider;
@@ -19,10 +21,12 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -109,7 +113,8 @@ public class LrcoreSsoSecurityConfig {
     @Bean("defaultSecurityFilterChain")
     @Order(2)
     public SecurityFilterChain lrcoreSsoSecurityFilterChain(HttpSecurity http,
-                                                            ObjectProvider<AuthenticationProvider> providers)
+                                                            ObjectProvider<AuthenticationProvider> providers,
+                                                            ObjectProvider<RegisteredClientRepository> clientRepositories)
             throws Exception {
         // 由 AuthenticationProvider Bean 直接构建 ProviderManager（LrcoreSsoHostConfiguration
         // 的 PasswordLrcoreAuthenticator 策略链）。
@@ -159,9 +164,46 @@ public class LrcoreSsoSecurityConfig {
                         .logoutRequestMatcher(new OrRequestMatcher(
                                 PathPatternRequestMatcher.pathPattern(HttpMethod.GET, "/logout"),
                                 PathPatternRequestMatcher.pathPattern(HttpMethod.POST, "/logout")))
-                        .logoutSuccessUrl("/login?logout=1"));
+                        .logoutSuccessHandler(logoutSuccessHandler(clientRepositories.getIfAvailable())));
         // @formatter:on
         return http.build();
+    }
+
+    private LogoutSuccessHandler logoutSuccessHandler(
+            RegisteredClientRepository clientRepository) {
+        return (request, response, authentication) -> {
+            String redirect = request.getParameter("redirect");
+            String clientId = request.getParameter("client_id");
+            if (isBlank(redirect) || isBlank(clientId) || clientRepository == null) {
+                response.sendRedirect(request.getContextPath() + "/login?logout=1");
+                return;
+            }
+
+            RegisteredClient client = clientRepository.findByClientId(clientId);
+            if (client == null || !isRegisteredLogoutTarget(redirect, client.getPostLogoutRedirectUris())) {
+                response.sendRedirect(request.getContextPath() + "/login?logout=1");
+                return;
+            }
+            response.sendRedirect(redirect);
+        };
+    }
+
+    private boolean isRegisteredLogoutTarget(String redirect, java.util.Set<String> registeredUris) {
+        URI target = URI.create(redirect);
+        if (!target.isAbsolute() || target.getUserInfo() != null || target.getHost() == null) {
+            return false;
+        }
+        return registeredUris.stream().anyMatch(registeredUri -> {
+            URI allowed = URI.create(registeredUri);
+            return allowed.getHost() != null
+                    && target.getScheme().equalsIgnoreCase(allowed.getScheme())
+                    && target.getAuthority().equals(allowed.getAuthority())
+                    && target.getPath().equals(allowed.getPath());
+        });
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     /**
