@@ -85,24 +85,6 @@ public class SysUserRoleEntity implements Serializable {
     @Schema(description = "关联状态（0有效 1无效）")
     private Integer relationStatus;
 
-    @Schema(description = "数据权限范围")
-    private Integer dataScope;
-
-    @Schema(description = "数据权限类型")
-    private Integer dataScopeType;
-
-    @Schema(description = "自定义数据范围")
-    private String customDataScope;
-
-    @Schema(description = "字段级权限")
-    private String fieldPermissions;
-
-    @Schema(description = "行级权限")
-    private String rowPermissions;
-
-    @Schema(description = "用户角色字段级权限配置（JSON格式）")
-    private String columnPermissions;
-
     @Schema(description = "是否内置（0否 1是）")
     @Column("build_in")
     private Integer buildIn;

@@ -156,7 +156,6 @@ public class SystemRoleManagementController extends BaseController {
                 role.getId().toString(),
                 role.getRoleCode(),
                 role.getRoleName(),
-                "全部数据",
                 Objects.toString(role.getAppId(), "0"),
                 Objects.requireNonNullElse(role.getRoleScope(), "APP"),
                 Objects.equals(role.getStatus(), 0) ? 1 : 0,
@@ -173,8 +172,6 @@ public class SystemRoleManagementController extends BaseController {
                 role.getRoleName(),
                 Objects.toString(role.getAppId(), "0"),
                 Objects.requireNonNullElse(role.getRoleScope(), "APP"),
-                1,
-                null,
                 null,
                 Objects.equals(role.getStatus(), 0) ? 1 : 0,
                 role.getRemark()
@@ -207,7 +204,6 @@ public class SystemRoleManagementController extends BaseController {
             String id,
             String code,
             String name,
-            String dataScopeLabel,
             String appId,
             String roleScope,
             Integer status,
@@ -223,8 +219,6 @@ public class SystemRoleManagementController extends BaseController {
             String name,
             String appId,
             String roleScope,
-            Integer dataScope,
-            List<String> deptIds,
             Integer sort,
             Integer status,
             String remark
