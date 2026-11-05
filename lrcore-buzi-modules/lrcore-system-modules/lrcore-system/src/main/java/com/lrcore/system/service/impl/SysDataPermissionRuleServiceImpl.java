@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * 数据权限规则表 服务层实现
@@ -201,6 +202,23 @@ public class SysDataPermissionRuleServiceImpl extends ServiceImpl<SysDataPermiss
 
         log.info("批量删除数据权限规则成功，删除数量: {}", count);
         return count > 0;
+    }
+
+    /** 表名白名单：仅允许字母/数字/下划线，防止拼接注入 */
+    private static final Pattern TABLE_NAME_PATTERN = Pattern.compile("^[A-Za-z0-9_]+$");
+
+    @Override
+    public List<String> listDatabaseTables() {
+        return getMapper().selectDatabaseTables();
+    }
+
+    @Override
+    public List<String> listColumnsByTable(String tableName) {
+        if (tableName == null || !TABLE_NAME_PATTERN.matcher(tableName.trim()).matches()) {
+            log.warn("非法表名，拒绝查询列信息: {}", tableName);
+            return List.of();
+        }
+        return getMapper().selectColumnsByTable(tableName.trim());
     }
 
     @Override

@@ -120,4 +120,16 @@ public interface ISysDataPermissionRuleService extends IService<SysDataPermissio
      * @return 存在返回true
      */
     boolean existsByRuleCodeExclude(String ruleCode, Long excludeId);
+
+    /**
+     * 查询当前数据库的所有基础表名（用于规则配置下拉）
+     */
+    List<String> listDatabaseTables();
+
+    /**
+     * 查询指定表的列名（用于规则配置下拉）
+     *
+     * @param tableName 表名
+     */
+    List<String> listColumnsByTable(String tableName);
 }

@@ -4,6 +4,8 @@ import com.lrcore.system.domain.SysDataPermissionRuleEntity;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.query.QueryWrapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
@@ -43,6 +45,24 @@ public interface SysDataPermissionRuleMapper extends BaseMapper<SysDataPermissio
      * @param appId    应用ID
      * @return 规则列表
      */
+    /**
+     * 查询当前数据库的所有基础表名（按表名排序）
+     */
+    @Select("SELECT table_name FROM information_schema.tables " +
+            "WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE' " +
+            "ORDER BY table_name")
+    List<String> selectDatabaseTables();
+
+    /**
+     * 查询指定表的列名（按列序排序）
+     *
+     * @param tableName 表名（调用前须做白名单校验，防止注入）
+     */
+    @Select("SELECT column_name FROM information_schema.columns " +
+            "WHERE table_schema = DATABASE() AND table_name = #{tableName} " +
+            "ORDER BY ordinal_position")
+    List<String> selectColumnsByTable(@Param("tableName") String tableName);
+
     default List<SysDataPermissionRuleEntity> selectValidRules(Long tenantId, Long appId) {
         return selectListByQuery(QueryWrapper.create()
                 .where(SysDataPermissionRuleEntity::getTenantId).eq(tenantId)

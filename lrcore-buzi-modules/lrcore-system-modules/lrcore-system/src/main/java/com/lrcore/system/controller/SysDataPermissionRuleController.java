@@ -3,7 +3,10 @@ package com.lrcore.system.controller;
 import com.lrcore.common.core.web.controller.BaseController;
 import com.lrcore.common.core.web.domain.ApiResult;
 import com.mybatisflex.core.paginate.Page;
+import com.mybatisflex.core.query.QueryWrapper;
+import com.lrcore.system.domain.SysAppEntity;
 import com.lrcore.system.domain.SysDataPermissionRuleEntity;
+import com.lrcore.system.service.ISysAppService;
 import com.lrcore.system.service.ISysDataPermissionRuleService;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.Serializable;
@@ -32,6 +36,7 @@ import java.util.List;
 public class SysDataPermissionRuleController extends BaseController {
 
     private final ISysDataPermissionRuleService sysDataPermissionRuleService;
+    private final ISysAppService sysAppService;
 
     /**
      * 添加 数据权限规则表
@@ -83,6 +88,56 @@ public class SysDataPermissionRuleController extends BaseController {
         return ApiResult.success(sysDataPermissionRuleService.list());
     }
 
+
+    /**
+     * 应用选项（id/名称/编码）
+     */
+    public record AppOption(String id, String name, String code) {
+    }
+
+    /**
+     * 获取启用的应用列表（规则配置-应用ID下拉，来自 sys_app）
+     *
+     * @return 应用选项列表
+     */
+    @GetMapping("/apps")
+    @Schema(description = "获取应用列表")
+    public ApiResult<List<AppOption>> apps() {
+        List<SysAppEntity> apps = sysAppService.list(QueryWrapper.create()
+                .where(SysAppEntity::getStatus).eq(0)
+                .and(SysAppEntity::getDeleted).eq(0)
+                .orderBy(SysAppEntity::getAppName).asc());
+        List<AppOption> options = apps.stream()
+                .map(app -> new AppOption(
+                        app.getId() != null ? app.getId().toString() : null,
+                        app.getAppName(),
+                        app.getAppCode()))
+                .toList();
+        return ApiResult.success(options);
+    }
+
+    /**
+     * 查询当前数据库的所有基础表名（规则配置-目标表下拉）
+     *
+     * @return 表名列表
+     */
+    @GetMapping("/tables")
+    @Schema(description = "获取数据库表名列表")
+    public ApiResult<List<String>> tables() {
+        return ApiResult.success(sysDataPermissionRuleService.listDatabaseTables());
+    }
+
+    /**
+     * 查询指定表的列名（规则配置-字段下拉，随目标表级联加载）
+     *
+     * @param table 表名
+     * @return 列名列表
+     */
+    @GetMapping("/columns")
+    @Schema(description = "获取指定表的列名列表")
+    public ApiResult<List<String>> columns(@RequestParam("table") String table) {
+        return ApiResult.success(sysDataPermissionRuleService.listColumnsByTable(table));
+    }
 
     /**
      * 根据数据权限规则表主键获取详细信息。
