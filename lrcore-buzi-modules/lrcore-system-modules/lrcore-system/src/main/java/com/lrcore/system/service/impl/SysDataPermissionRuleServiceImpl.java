@@ -1,5 +1,7 @@
 package com.lrcore.system.service.impl;
 
+import com.lrcore.common.core.utils.SecurityUtils;
+import com.lrcore.common.core.web.domain.login.LoginUser;
 import com.lrcore.common.datascope.exception.DataScopeException;
 import com.lrcore.system.domain.SysDataPermissionRuleEntity;
 import com.lrcore.system.enums.DataRuleTypeEnum;
@@ -91,6 +93,21 @@ public class SysDataPermissionRuleServiceImpl extends ServiceImpl<SysDataPermiss
         }
         if (entity.getDeleted() == null) {
             entity.setDeleted(0);
+        }
+
+        // 2.1 填充租户：前端不传 tenantId 时取当前登录用户租户（优先网关标头，回退 LoginUser），
+        //     保证规则可被 SysDataScopeRuleProvider 按租户加载生效
+        if (entity.getTenantId() == null) {
+            Long tenantId = SecurityUtils.getTenantId();
+            if (tenantId == null) {
+                LoginUser loginUser = SecurityUtils.getLoginUser();
+                tenantId = loginUser != null ? loginUser.getTenantId() : null;
+            }
+            if (tenantId != null) {
+                entity.setTenantId(tenantId);
+            } else {
+                log.warn("创建数据权限规则时无法获取当前租户，规则将不绑定租户: ruleCode={}", entity.getRuleCode());
+            }
         }
 
         // 3. 保存规则

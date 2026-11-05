@@ -42,7 +42,7 @@ public class SysDataPermissionRuleController extends BaseController {
     @PostMapping("/save")
     @Schema(description = "新增数据权限规则")
     public ApiResult<Boolean> save(@RequestBody SysDataPermissionRuleEntity sysDataPermissionRule) {
-        return ApiResult.success(sysDataPermissionRuleService.save(sysDataPermissionRule));
+        return ApiResult.success(sysDataPermissionRuleService.createRule(sysDataPermissionRule));
     }
 
 
@@ -68,7 +68,7 @@ public class SysDataPermissionRuleController extends BaseController {
     @PutMapping("/update")
     @Schema(description = "修改数据权限规则")
     public ApiResult<Boolean> update(@RequestBody SysDataPermissionRuleEntity sysDataPermissionRule) {
-        return ApiResult.success(sysDataPermissionRuleService.updateById(sysDataPermissionRule));
+        return ApiResult.success(sysDataPermissionRuleService.updateRule(sysDataPermissionRule));
     }
 
 
