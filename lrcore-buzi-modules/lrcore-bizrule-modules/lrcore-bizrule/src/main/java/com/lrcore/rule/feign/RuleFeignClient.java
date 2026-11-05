@@ -2,7 +2,6 @@ package com.lrcore.rule.feign;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.lrcore.common.core.utils.FunCollectUtils;
 import com.lrcore.common.rule.RemoteRuleApi;
 import com.lrcore.common.rule.dto.RuleExecuteReq;
 import com.lrcore.common.rule.dto.RuleExecuteResp;
@@ -15,16 +14,18 @@ import com.lrcore.rule.registry.RuleRegistry;
 import com.lrcore.rule.service.ISysBizRuleService;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.PostConstruct;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * <p>类模块说明</p>
@@ -38,31 +39,15 @@ import java.util.concurrent.*;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@AllArgsConstructor
 public class RuleFeignClient implements RemoteRuleApi {
 
     private final RuleRegistry ruleRegistry;
     private final ISysBizRuleService sysBizRuleService;
 
     @Qualifier("ruleRunExecutor")
-    private ExecutorService ruleRunExecutor;
+    private final ExecutorService ruleRunExecutor;
 
-    // 本地缓存
-    //各部分拆解
-    //LoadingCache<String, List<SysBizRuleConfigEntity>>
-    //LoadingCache：自带自动加载逻辑的缓存。
-    //key：String，就是 bizCode（业务编码，例如 user_add、order_create）
-    //value：List<SysBizRuleConfigEntity>，这个 bizCode 对应的、已经启用、按 sort_num 排好序的规则配置集合。
-
-    //.expireAfterWrite(2, TimeUnit.SECONDS)
-    //写入缓存之后 2 秒过期。
-    //每一条缓存记录，存入内存开始计时，2 秒之后自动失效清除。
-
-    //.build(key -> configMapper.selectByBizCode(key))
-    //Lambda：缓存未命中 / 缓存过期的时候，自动执行这个逻辑去查数据库回填缓存。
-    //key 就是传入的 bizCode
-    //configMapper.selectByBizCode(key)：执行 Mybatis 查询，根据 bizCode 从数据库查出规则配置列表。
-    private LoadingCache<String, List<SysBizRuleConfigEntity>> bizRuleCache;  // 去掉 final
+    private LoadingCache<String, List<SysBizRuleConfigEntity>> bizRuleCache;
 
     @PostConstruct
     public void init() {
@@ -98,7 +83,6 @@ public class RuleFeignClient implements RemoteRuleApi {
                 }
                 String ruleName = validateRule.getRuleName();
                 try {
-                    // 提交隔离线程池执行动态规则逻辑，设置单条超时500ms
                     Future<Void> future = ruleRunExecutor.submit(() -> {
                         log.info("执行规则：{}", ruleName);
                         validateRule.validate(ruleExecuteReq.getContext());
@@ -146,16 +130,6 @@ public class RuleFeignClient implements RemoteRuleApi {
         // @formatter::on
     }
 
-    /**
-     * <p>方法说明</p>
-     *
-     * @Describe: 热更新完成后，清除配置缓存；这个方法由管理接口回调调用
-     * @Param: []
-     * @Author: Qi Liu
-     * @Date: 2026/8/5 11:24
-     * @Return void
-     * @Version: 1.0
-     */
     @Override
     public void clearCache() {
         bizRuleCache.invalidateAll();
