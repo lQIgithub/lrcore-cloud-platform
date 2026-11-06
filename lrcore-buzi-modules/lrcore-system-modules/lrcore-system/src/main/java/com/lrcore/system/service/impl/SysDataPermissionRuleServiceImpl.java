@@ -1,6 +1,9 @@
 package com.lrcore.system.service.impl;
 
+import com.lrcore.common.core.utils.DateUtils;
+import com.lrcore.common.core.utils.FunStrUtils;
 import com.lrcore.common.core.utils.SecurityUtils;
+import com.lrcore.common.core.utils.bean.BeanUtils;
 import com.lrcore.common.core.web.domain.login.LoginUser;
 import com.lrcore.common.datascope.exception.DataScopeException;
 import com.lrcore.system.domain.SysDataPermissionRuleEntity;
@@ -8,6 +11,7 @@ import com.lrcore.system.enums.DataRuleTypeEnum;
 import com.lrcore.system.mapper.SysDataPermissionRuleMapper;
 import com.lrcore.system.service.ISysDataPermissionRuleService;
 import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.update.UpdateChain;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
@@ -132,10 +137,47 @@ public class SysDataPermissionRuleServiceImpl extends ServiceImpl<SysDataPermiss
             throw DataScopeException.ruleCodeDuplicate(entity.getRuleCode());
         }
 
+        // 3. 保留未提交的系统字段，避免 UpdateChain 显式更新时误清空
+        entity.setRuleTypeEnum(Objects.requireNonNullElse(entity.getRuleTypeEnum(), existing.getRuleTypeEnum()));
+        entity.setPriority(Objects.requireNonNullElse(entity.getPriority(), existing.getPriority()));
+        entity.setIsDefault(Objects.requireNonNullElse(entity.getIsDefault(), existing.getIsDefault()));
+        entity.setIsEnabled(Objects.requireNonNullElse(entity.getIsEnabled(), existing.getIsEnabled()));
+        entity.setUpdateUserId(SecurityUtils.getUserId());
+        entity.setUpdateTime(DateUtils.nowDateTime());
+
         // 3. 更新规则
-        int result = getMapper().update(entity);
+        UpdateChain<SysDataPermissionRuleEntity> update = UpdateChain.of(getMapper())
+                .set(SysDataPermissionRuleEntity::getRuleName, entity.getRuleName(), true)
+                .set(SysDataPermissionRuleEntity::getRuleCode, entity.getRuleCode(), true)
+                .set(SysDataPermissionRuleEntity::getRuleTypeEnum, entity.getRuleTypeEnum(), true)
+                .set(SysDataPermissionRuleEntity::getTargetTable, normalizeBlank(entity.getTargetTable()), true)
+                .set(SysDataPermissionRuleEntity::getTargetField, normalizeBlank(entity.getTargetField()), true)
+                .set(SysDataPermissionRuleEntity::getPermissionColumn, normalizeBlank(entity.getPermissionColumn()), true)
+                .set(SysDataPermissionRuleEntity::getPermOperatorEnum, entity.getPermOperatorEnum(), true)
+                .set(SysDataPermissionRuleEntity::getPermissionValue, normalizeBlank(entity.getPermissionValue()), true)
+                .set(SysDataPermissionRuleEntity::getFilterCondition, normalizeBlank(entity.getFilterCondition()), true)
+                .set(SysDataPermissionRuleEntity::getDataScopeEnum, entity.getDataScopeEnum(), true)
+                .set(SysDataPermissionRuleEntity::getPriority, entity.getPriority(), true)
+                .set(SysDataPermissionRuleEntity::getIsDefault, entity.getIsDefault(), true)
+                .set(SysDataPermissionRuleEntity::getIsEnabled, entity.getIsEnabled(), true)
+                .set(SysDataPermissionRuleEntity::getAppId, entity.getAppId(), true)
+                .set(SysDataPermissionRuleEntity::getRemark, normalizeBlank(entity.getRemark()), true)
+                .set(SysDataPermissionRuleEntity::getUpdateUserId, entity.getUpdateUserId(), true)
+                .set(SysDataPermissionRuleEntity::getUpdateTime, entity.getUpdateTime(), true)
+                .where(SysDataPermissionRuleEntity::getId).eq(entity.getId());
+        boolean result = update.update();
         log.info("更新数据权限规则成功，规则ID: {}, 规则编码: {}", entity.getId(), entity.getRuleCode());
-        return result > 0;
+        return result;
+    }
+
+    /**
+     * 将空白字符串归一化为 null，确保“清空”操作可以显式更新数据库字段为 NULL
+     */
+    private String normalizeBlank(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     @Override
